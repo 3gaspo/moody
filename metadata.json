@@ -1,0 +1,8 @@
+{
+  "name": "Moody",
+  "description": "A minimal mood tracker where each day can be assigned a mood color, viewed on a calendar, and summarized in statistics.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

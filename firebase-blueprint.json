@@ -1,0 +1,55 @@
+{
+  "entities": {
+    "Mood": {
+      "title": "Mood",
+      "description": "Represents a customizable mood color and label",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "color": { "type": "string" },
+        "order": { "type": "number" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "name", "color", "order", "createdAt", "updatedAt"]
+    },
+    "MoodEntry": {
+      "title": "MoodEntry",
+      "description": "Represents a single daily entry with mood and optional notes",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "date": { "type": "string" },
+        "moodId": { "type": "string" },
+        "note": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "date", "note", "createdAt", "updatedAt"]
+    },
+    "Settings": {
+      "title": "Settings",
+      "description": "User specific application preferences",
+      "type": "object",
+      "properties": {
+        "theme": { "type": "string" }
+      },
+      "required": ["theme"]
+    }
+  },
+  "firestore": {
+    "/users/{uid}/moods/{moodId}": {
+      "schema": "Mood",
+      "description": "A collection of user-defined mood configurations"
+    },
+    "/users/{uid}/entries/{date}": {
+      "schema": "MoodEntry",
+      "description": "Daily mood tracker entries indexed by YYYY-MM-DD"
+    },
+    "/users/{uid}/settings/main": {
+      "schema": "Settings",
+      "description": "User app settings document"
+    }
+  }
+}
