@@ -10,8 +10,7 @@ import {
   Lock,
   Eye,
   EyeOff,
-  AlertTriangle,
-  Smile
+  AlertTriangle
 } from 'lucide-react';
 
 export const AuthScreen: React.FC = () => {
@@ -51,16 +50,21 @@ export const AuthScreen: React.FC = () => {
       <div className="w-full max-w-md bg-white dark:bg-neutral-900 rounded-[32px] border border-black/5 dark:border-white/5 shadow-2xl p-8 flex flex-col space-y-8 animate-fade-in" id="auth-screen-card">
         {/* App Logo & Welcome */}
         <div className="flex flex-col items-center justify-center text-center space-y-3">
-          <div className="p-4 bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-[24px] shadow-inner" id="auth-logo-box">
-            <Smile className="w-12 h-12" />
-          </div>
+          <img
+            src="/moody.svg"
+            alt="Moody App Icon"
+            className="w-20 h-20 object-contain"
+            id="auth-app-icon"
+          />
           <div className="space-y-1">
             <h1 className="text-3xl font-extrabold tracking-tight text-gray-900 dark:text-white" id="auth-welcome-title">
               Moody
             </h1>
-            <p className="text-sm text-gray-400 dark:text-gray-500" id="auth-welcome-subtitle">
-              {isSignUp ? 'Create a profile to start tracking your daily mood' : 'Sign in to access your mood history and insights'}
-            </p>
+            {isSignUp && (
+              <p className="text-sm text-gray-400 dark:text-gray-500" id="auth-welcome-subtitle">
+                Create a profile to start tracking your daily mood
+              </p>
+            )}
           </div>
         </div>
 

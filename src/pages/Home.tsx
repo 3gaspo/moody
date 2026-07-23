@@ -82,49 +82,41 @@ export const Home: React.FC<{ onNavigateToSettings: () => void }> = ({ onNavigat
         </p>
       </div>
 
-      {/* Main card showing current mood state */}
-      <div 
-        className="relative overflow-hidden p-8 rounded-[32px] transition-all duration-500 ease-out flex flex-col justify-between min-h-[180px] shadow-sm border border-black/[0.03] dark:border-white/[0.03]"
-        style={{
-          backgroundColor: currentMood ? `${currentMood.color}15` : 'rgba(0, 0, 0, 0.04)',
-          borderLeft: currentMood ? `8px solid ${currentMood.color}` : '8px solid rgba(0, 0, 0, 0.1)'
-        }}
-        id="today-mood-status-card"
-      >
-        <div className="space-y-2">
-          <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100">
-            {currentMood ? `Feeling ${currentMood.name}` : 'How are you feeling today?'}
-          </h2>
-        </div>
-
-        {currentMood && (
-          <div className="flex items-center justify-between mt-4">
-            <div className="flex items-center space-x-3">
-              <span 
-                className="w-5 h-5 rounded-full shadow-inner animate-pulse" 
-                style={{ backgroundColor: currentMood.color }}
-              />
-              <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">
-                {currentMood.name}
-              </span>
-            </div>
-            <button
-              onClick={handleClearMood}
-              className="flex items-center space-x-1 text-xs font-bold text-red-500 hover:text-red-600 bg-red-500/10 hover:bg-red-500/20 px-3 py-1.5 rounded-full transition-transform active:scale-95 cursor-pointer"
-              id="clear-mood-btn"
-            >
-              <X className="w-3.5 h-3.5" />
-              <span>Clear Mood</span>
-            </button>
+      {/* Main card showing current mood state when selected */}
+      {currentMood && (
+        <div 
+          className="relative overflow-hidden p-6 sm:p-8 rounded-[32px] transition-all duration-500 ease-out flex items-center justify-between shadow-sm border border-black/[0.03] dark:border-white/[0.03]"
+          style={{
+            backgroundColor: `${currentMood.color}15`,
+            borderLeft: `8px solid ${currentMood.color}`
+          }}
+          id="today-mood-status-card"
+        >
+          <div className="flex items-center space-x-3">
+            <span 
+              className="w-5 h-5 rounded-full shadow-inner animate-pulse" 
+              style={{ backgroundColor: currentMood.color }}
+            />
+            <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100">
+              Feeling {currentMood.name}
+            </h2>
           </div>
-        )}
-      </div>
+          <button
+            onClick={handleClearMood}
+            className="flex items-center space-x-1 text-xs font-bold text-red-500 hover:text-red-600 bg-red-500/10 hover:bg-red-500/20 px-3 py-1.5 rounded-full transition-transform active:scale-95 cursor-pointer shrink-0"
+            id="clear-mood-btn"
+          >
+            <X className="w-3.5 h-3.5" />
+            <span>Clear Mood</span>
+          </button>
+        </div>
+      )}
 
       {/* Mood Palette Selection Section */}
       <div className="bg-black/5 dark:bg-white/5 p-8 rounded-[32px] space-y-5" id="mood-palette-section">
-        <h3 className="text-[10px] font-bold uppercase tracking-widest text-gray-400 dark:text-gray-500">
-          Select Your Mood
-        </h3>
+        <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100" id="mood-palette-heading">
+          How are you feeling today?
+        </h2>
         
         {loading && moods.length === 0 ? (
           <div className="flex justify-center py-6 text-gray-400">Loading moods...</div>
