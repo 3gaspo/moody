@@ -57,6 +57,7 @@ export interface DataProviderInterface {
   addMood: (name: string, color: string) => Promise<void>;
   updateMood: (id: string, name: string, color: string) => Promise<void>;
   deleteMood: (id: string) => Promise<void>;
+  resetMoods: () => Promise<void>;
   
   // Entry mutations
   saveEntry: (date: string, moodId: string | null, note: string) => Promise<void>;

@@ -40,6 +40,7 @@ export const SettingsPage: React.FC = () => {
     addMood,
     updateMood,
     deleteMood,
+    resetMoods,
     updateThemeSetting,
     clearHistory,
     resetAll,
@@ -178,6 +179,18 @@ export const SettingsPage: React.FC = () => {
   };
 
   // Reset Modal Handlers
+  const handleResetMoods = async () => {
+    setIsResetting(true);
+    try {
+      await resetMoods();
+      setShowResetModal(false);
+    } catch (err) {
+      console.error('Reset moods error:', err);
+    } finally {
+      setIsResetting(false);
+    }
+  };
+
   const handleClearHistory = async () => {
     setIsResetting(true);
     try {
@@ -768,6 +781,16 @@ export const SettingsPage: React.FC = () => {
             </p>
 
             <div className="flex flex-col space-y-3 pt-2">
+              {/* Reset Moods to Default */}
+              <button
+                onClick={handleResetMoods}
+                disabled={isResetting}
+                className="w-full py-3.5 bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 font-bold rounded-2xl transition-all active:scale-98 disabled:opacity-50 cursor-pointer text-center text-sm"
+                id="reset-moods-btn"
+              >
+                {isResetting ? 'Processing...' : 'Restore Default Moods'}
+              </button>
+
               {/* Clear History */}
               <button
                 onClick={handleClearHistory}

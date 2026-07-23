@@ -553,6 +553,50 @@ export const Providers: React.FC<{ children: React.ReactNode }> = ({ children })
     }
   };
 
+  const resetMoods = async (): Promise<void> => {
+    if (!user) return;
+    const uid = user.uid;
+
+    const now = new Date().toISOString();
+    const reseededMoods = defaultMoodsSeed.map(m => ({
+      ...m,
+      createdAt: now,
+      updatedAt: now
+    }));
+
+    if (!isFirebaseMode) {
+      const moodsKey = `moody_moods_${uid}`;
+      localStorage.setItem(moodsKey, JSON.stringify(reseededMoods));
+      setMoods(reseededMoods);
+    } else {
+      try {
+        const moodsSnap = await getDocs(collection(db!, 'users', uid, 'moods'));
+        const batch = writeBatch(db!);
+
+        moodsSnap.forEach((docSnap: any) => {
+          batch.delete(docSnap.ref);
+        });
+
+        defaultMoodsSeed.forEach(m => {
+          const mRef = doc(db!, 'users', uid, 'moods', m.id);
+          batch.set(mRef, {
+            id: m.id,
+            name: m.name,
+            color: m.color,
+            order: m.order,
+            createdAt: now,
+            updatedAt: now
+          });
+        });
+
+        await batch.commit();
+        setMoods(reseededMoods);
+      } catch (err) {
+        handleFirestoreError(err, OperationType.WRITE, `users/${uid}/moods`);
+      }
+    }
+  };
+
   const updateThemeSetting = async (theme: 'light' | 'dark'): Promise<void> => {
     if (!user) return;
     const uid = user.uid;
@@ -563,7 +607,6 @@ export const Providers: React.FC<{ children: React.ReactNode }> = ({ children })
       localStorage.setItem(settingsKey, JSON.stringify(newSettings));
       setSettings(newSettings);
     } else {
-      const { doc, setDoc } = await import('firebase/firestore');
       try {
         await setDoc(doc(db!, 'users', uid, 'settings', 'main'), { theme }, { merge: true });
       } catch (err) {
@@ -581,7 +624,6 @@ export const Providers: React.FC<{ children: React.ReactNode }> = ({ children })
       localStorage.setItem(entriesKey, JSON.stringify({}));
       setEntries({});
     } else {
-      const { collection, getDocs, doc, writeBatch } = require('firebase/firestore');
       try {
         const querySnapshot = await getDocs(collection(db!, 'users', uid, 'entries'));
         const chunks: any[] = [];
@@ -614,17 +656,17 @@ export const Providers: React.FC<{ children: React.ReactNode }> = ({ children })
     if (!user) return;
     const uid = user.uid;
 
+    const now = new Date().toISOString();
+    const reseededMoods = defaultMoodsSeed.map(m => ({
+      ...m,
+      createdAt: now,
+      updatedAt: now
+    }));
+
     if (!isFirebaseMode) {
       const moodsKey = `moody_moods_${uid}`;
       const entriesKey = `moody_entries_${uid}`;
       const settingsKey = `moody_settings_${uid}`;
-
-      const now = new Date().toISOString();
-      const reseededMoods = defaultMoodsSeed.map(m => ({
-        ...m,
-        createdAt: now,
-        updatedAt: now
-      }));
 
       localStorage.setItem(moodsKey, JSON.stringify(reseededMoods));
       localStorage.setItem(entriesKey, JSON.stringify({}));
@@ -634,9 +676,8 @@ export const Providers: React.FC<{ children: React.ReactNode }> = ({ children })
       setEntries({});
       setSettings({ theme: 'light' });
     } else {
-      const { collection, getDocs, doc, writeBatch } = require('firebase/firestore');
       try {
-        // Delete all entries
+        // Delete all entries and moods
         const entriesSnap = await getDocs(collection(db!, 'users', uid, 'entries'));
         const moodsSnap = await getDocs(collection(db!, 'users', uid, 'moods'));
 
@@ -651,7 +692,6 @@ export const Providers: React.FC<{ children: React.ReactNode }> = ({ children })
         });
 
         // Reseed default moods and reset theme in the same batch
-        const now = new Date().toISOString();
         defaultMoodsSeed.forEach(m => {
           const mRef = doc(db!, 'users', uid, 'moods', m.id);
           batch.set(mRef, {
@@ -668,6 +708,9 @@ export const Providers: React.FC<{ children: React.ReactNode }> = ({ children })
         batch.set(settingsRef, { theme: 'light' });
 
         await batch.commit();
+        setMoods(reseededMoods);
+        setEntries({});
+        setSettings({ theme: 'light' });
       } catch (err) {
         handleFirestoreError(err, OperationType.WRITE, `users/${uid}`);
       }
@@ -702,6 +745,7 @@ export const Providers: React.FC<{ children: React.ReactNode }> = ({ children })
     addMood,
     updateMood,
     deleteMood,
+    resetMoods,
     saveEntry,
     deleteEntry,
     updateThemeSetting,
