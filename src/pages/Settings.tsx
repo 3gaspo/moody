@@ -25,10 +25,11 @@ import {
   X
 } from 'lucide-react';
 import { Mood, MoodEntry } from '../types';
+import packageJson from '../../package.json';
 
 // Constants to customize easily
 const SUPPORT_URL = 'https://ko-fi.com/3gaspo';
-const APP_VERSION = '0.0.0';
+const APP_VERSION = packageJson.version;
 
 export const SettingsPage: React.FC = () => {
   const { user, signUp, signIn, signOut, error: authError, clearError } = useAuth();
@@ -209,9 +210,6 @@ export const SettingsPage: React.FC = () => {
           <h1 className="text-4xl font-bold tracking-tight text-gray-900 dark:text-white" id="settings-title">
             Settings
           </h1>
-          <p className="text-xs font-bold uppercase tracking-widest text-gray-400 dark:text-gray-500">
-            Control Panel &amp; Options
-          </p>
         </div>
         {isDevMode && (
           <span className="text-xs font-black tracking-widest text-emerald-500 bg-emerald-500/10 px-3 py-1.5 rounded-full uppercase" id="dev-mode-label">
@@ -224,9 +222,6 @@ export const SettingsPage: React.FC = () => {
       <div className="bg-black/5 dark:bg-white/5 p-8 rounded-[32px] space-y-6" id="moods-settings-section">
         <div className="flex items-center justify-between">
           <div className="space-y-1">
-            <span className="text-[10px] font-bold uppercase tracking-widest text-gray-400 dark:text-gray-500">
-              App-specific
-            </span>
             <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100">
               Moods
             </h2>
@@ -325,9 +320,6 @@ export const SettingsPage: React.FC = () => {
       {/* SECTION 2: Appearance */}
       <div className="bg-black/5 dark:bg-white/5 p-8 rounded-[32px] space-y-5" id="appearance-settings-section">
         <div className="space-y-1">
-          <span className="text-[10px] font-bold uppercase tracking-widest text-gray-400 dark:text-gray-500">
-            Appearance
-          </span>
           <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100">
             Theme
           </h2>
@@ -365,9 +357,6 @@ export const SettingsPage: React.FC = () => {
       {/* SECTION 3: Account (Sign in / Create Account, or Display Signed In profile) */}
       <div className="bg-black/5 dark:bg-white/5 p-8 rounded-[32px] space-y-5" id="account-settings-section">
         <div className="space-y-1">
-          <span className="text-[10px] font-bold uppercase tracking-widest text-gray-400 dark:text-gray-500">
-            Account Management
-          </span>
           <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100">
             Account
           </h2>
@@ -478,15 +467,6 @@ export const SettingsPage: React.FC = () => {
 
       {/* SECTION 4: Actions (Disconnect, Download, Reset) */}
       <div className="bg-black/5 dark:bg-white/5 p-8 rounded-[32px] space-y-4" id="actions-settings-section">
-        <div className="space-y-1 mb-2">
-          <span className="text-[10px] font-bold uppercase tracking-widest text-gray-400 dark:text-gray-500">
-            System Commands
-          </span>
-          <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100">
-            Actions
-          </h2>
-        </div>
-
         {/* 1. Disconnect / Sign out */}
         {user && (
           showSignOutConfirm ? (
@@ -494,13 +474,12 @@ export const SettingsPage: React.FC = () => {
               className="w-full p-5 bg-orange-500/5 dark:bg-orange-500/10 rounded-2xl border border-orange-500/20 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3 animate-fade-in"
               id="action-disconnect-confirm-box"
             >
-              <div className="flex items-center space-x-3 text-left">
-                <span className="p-2 bg-orange-500/20 text-orange-500 rounded-xl">
-                  <AlertTriangle className="w-4 h-4 animate-pulse" />
+              <div className="flex items-center space-x-3.5 text-left">
+                <span className="p-2.5 bg-orange-500/10 text-orange-500 rounded-xl">
+                  <AlertTriangle className="w-5 h-5 animate-pulse" />
                 </span>
                 <div>
-                  <p className="font-bold text-gray-800 dark:text-gray-100 text-sm">Sign out of session?</p>
-                  <p className="text-xs text-gray-400 dark:text-gray-500">You will need to sign back in to access synced historical states.</p>
+                  <p className="text-sm font-bold text-gray-800 dark:text-gray-100">Confirm session sign out?</p>
                 </div>
               </div>
               <div className="flex items-center space-x-2 shrink-0">
@@ -528,7 +507,7 @@ export const SettingsPage: React.FC = () => {
           ) : (
             <button
               onClick={() => setShowSignOutConfirm(true)}
-              className="w-full flex items-center justify-between p-5 bg-white dark:bg-black/20 rounded-2xl border border-black/5 dark:border-white/5 shadow-sm text-left hover:shadow-md transition-shadow active:scale-99 cursor-pointer"
+              className="w-full flex items-center p-5 bg-white dark:bg-black/20 rounded-2xl border border-black/5 dark:border-white/5 shadow-sm text-left hover:shadow-md transition-shadow active:scale-99 cursor-pointer"
               id="action-disconnect-btn"
             >
               <div className="flex items-center space-x-3.5">
@@ -537,7 +516,6 @@ export const SettingsPage: React.FC = () => {
                 </span>
                 <div>
                   <p className="font-bold text-gray-800 dark:text-gray-100 text-base">Disconnect / Sign out</p>
-                  <p className="text-xs text-gray-400 dark:text-gray-500">Safely log out of your profile session</p>
                 </div>
               </div>
             </button>
@@ -547,7 +525,7 @@ export const SettingsPage: React.FC = () => {
         {/* 2. Download data as CSV */}
         <button
           onClick={handleCSVExport}
-          className="w-full flex items-center justify-between p-5 bg-white dark:bg-black/20 rounded-2xl border border-black/5 dark:border-white/5 shadow-sm text-left hover:shadow-md transition-shadow active:scale-99 cursor-pointer"
+          className="w-full flex items-center p-5 bg-white dark:bg-black/20 rounded-2xl border border-black/5 dark:border-white/5 shadow-sm text-left hover:shadow-md transition-shadow active:scale-99 cursor-pointer"
           id="action-download-csv-btn"
         >
           <div className="flex items-center space-x-3.5">
@@ -556,7 +534,6 @@ export const SettingsPage: React.FC = () => {
             </span>
             <div>
               <p className="font-bold text-gray-800 dark:text-gray-100 text-base">Download data as CSV</p>
-              <p className="text-xs text-gray-400 dark:text-gray-500">Export logged entries to moody-data-YYYY-MM-DD.csv</p>
             </div>
           </div>
         </button>
@@ -564,7 +541,7 @@ export const SettingsPage: React.FC = () => {
         {/* 3. Reset data (Red theme) */}
         <button
           onClick={() => setShowResetModal(true)}
-          className="w-full flex items-center justify-between p-5 bg-red-500/5 hover:bg-red-500/10 dark:bg-red-500/5 dark:hover:bg-red-500/10 rounded-2xl border border-red-500/10 text-left transition-colors active:scale-99 cursor-pointer"
+          className="w-full flex items-center p-5 bg-red-500/5 hover:bg-red-500/10 dark:bg-red-500/5 dark:hover:bg-red-500/10 rounded-2xl border border-red-500/10 text-left transition-colors active:scale-99 cursor-pointer"
           id="action-reset-data-btn"
         >
           <div className="flex items-center space-x-3.5">
@@ -573,7 +550,6 @@ export const SettingsPage: React.FC = () => {
             </span>
             <div>
               <p className="font-bold text-red-600 dark:text-red-500 text-base">Reset data</p>
-              <p className="text-xs text-red-500/70">Wipe statistics history or reseed default layouts</p>
             </div>
           </div>
         </button>
@@ -582,17 +558,15 @@ export const SettingsPage: React.FC = () => {
       {/* SECTION 5: Footer credits */}
       <div className="pt-8 flex flex-col items-center justify-center text-center space-y-6 border-t border-black/5 dark:border-white/5" id="settings-footer-section">
         {/* Credit Logo */}
-        <div className="w-40 h-40 flex items-center justify-center rounded-[32px] overflow-hidden bg-black/5 dark:bg-white/5">
-          <img
-            src="/gaspo_logo.svg"
-            alt="Gaspard Berthelier Logo"
-            className="w-32 h-32 object-contain"
-            onError={(e) => {
-              // Hide or render fallback text if missing
-              e.currentTarget.style.display = 'none';
-            }}
-          />
-        </div>
+        <img
+          src="/gaspo_logo.svg"
+          alt="Gaspard Berthelier Logo"
+          className="w-32 h-32 object-contain"
+          onError={(e) => {
+            // Hide or render fallback text if missing
+            e.currentTarget.style.display = 'none';
+          }}
+        />
 
         {/* Support the project button */}
         <a

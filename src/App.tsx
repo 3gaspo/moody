@@ -10,7 +10,8 @@ import { Home } from './pages/Home';
 import { CalendarView } from './pages/Calendar';
 import { Statistics } from './pages/Statistics';
 import { SettingsPage } from './pages/Settings';
-import { Smile, Calendar, BarChart3, Settings as SettingsIcon, LogIn, Lock } from 'lucide-react';
+import { Smile, Calendar, BarChart3, Settings as SettingsIcon } from 'lucide-react';
+import { AuthScreen } from './components/AuthScreen';
 
 const AppContent: React.FC = () => {
   const { user, loading: authLoading } = useAuth();
@@ -27,6 +28,11 @@ const AppContent: React.FC = () => {
     );
   }
 
+  // Standalone independent login/signup window if user is not authenticated
+  if (!user) {
+    return <AuthScreen />;
+  }
+
   return (
     <div className="w-full min-h-screen bg-neutral-100 dark:bg-neutral-950 text-gray-900 dark:text-gray-100 transition-colors duration-300">
       {/* Desktop Centering Frame (Mobile Shell) */}
@@ -38,40 +44,13 @@ const AppContent: React.FC = () => {
             <Route path="/" element={<Navigate to="/home" replace />} />
             
             {/* Home route */}
-            <Route 
-              path="/home" 
-              element={
-                user ? (
-                  <Home onNavigateToSettings={() => {}} />
-                ) : (
-                  <RequireAuthPrompt />
-                )
-              } 
-            />
+            <Route path="/home" element={<Home onNavigateToSettings={() => {}} />} />
 
             {/* Calendar route */}
-            <Route 
-              path="/calendar" 
-              element={
-                user ? (
-                  <CalendarView />
-                ) : (
-                  <RequireAuthPrompt />
-                )
-              } 
-            />
+            <Route path="/calendar" element={<CalendarView />} />
 
             {/* Statistics route */}
-            <Route 
-              path="/statistics" 
-              element={
-                user ? (
-                  <Statistics />
-                ) : (
-                  <RequireAuthPrompt />
-                )
-              } 
-            />
+            <Route path="/statistics" element={<Statistics />} />
 
             {/* Settings route */}
             <Route path="/settings" element={<SettingsPage />} />
@@ -143,31 +122,6 @@ const AppContent: React.FC = () => {
           </Link>
         </nav>
       </div>
-    </div>
-  );
-};
-
-// Rendered on Home/Calendar/Stats if the user is not authenticated
-const RequireAuthPrompt: React.FC = () => {
-  return (
-    <div className="flex flex-col items-center justify-center text-center py-16 px-4 space-y-6 animate-fade-in" id="auth-prompt-card">
-      <div className="p-5 bg-blue-500/10 text-blue-500 rounded-[32px] shadow-sm">
-        <Lock className="w-10 h-10" />
-      </div>
-      <div className="space-y-2">
-        <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100">Authentication Required</h2>
-        <p className="text-sm text-gray-400 dark:text-gray-500 max-w-sm">
-          Please sign in or create an account under the Settings tab to start tracking your mood and view history.
-        </p>
-      </div>
-      <Link
-        to="/settings"
-        className="flex items-center space-x-2 px-6 py-3 bg-black dark:bg-white text-white dark:text-black rounded-full font-bold text-sm shadow-md hover:scale-105 active:scale-95 transition-all cursor-pointer"
-        id="go-to-settings-auth-btn"
-      >
-        <LogIn className="w-4 h-4" />
-        <span>Go to Settings</span>
-      </Link>
     </div>
   );
 };

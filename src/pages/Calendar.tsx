@@ -108,9 +108,6 @@ export const CalendarView: React.FC = () => {
         <h1 className="text-4xl font-bold tracking-tight text-gray-900 dark:text-white" id="calendar-title">
           Calendar
         </h1>
-        <p className="text-xs font-bold uppercase tracking-widest text-gray-400 dark:text-gray-500">
-          Monthly Mood History
-        </p>
       </div>
 
       {/* Calendar Controls & Month selector */}

@@ -92,15 +92,12 @@ export const Home: React.FC<{ onNavigateToSettings: () => void }> = ({ onNavigat
         id="today-mood-status-card"
       >
         <div className="space-y-2">
-          <span className="text-[10px] font-bold uppercase tracking-widest text-gray-400 dark:text-gray-500">
-            Mood of the day
-          </span>
           <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100">
             {currentMood ? `Feeling ${currentMood.name}` : 'How are you feeling today?'}
           </h2>
         </div>
 
-        {currentMood ? (
+        {currentMood && (
           <div className="flex items-center justify-between mt-4">
             <div className="flex items-center space-x-3">
               <span 
@@ -119,11 +116,6 @@ export const Home: React.FC<{ onNavigateToSettings: () => void }> = ({ onNavigat
               <X className="w-3.5 h-3.5" />
               <span>Clear Mood</span>
             </button>
-          </div>
-        ) : (
-          <div className="flex items-center space-x-2 text-sm text-gray-400 dark:text-gray-500 mt-4">
-            <Smile className="w-4 h-4" />
-            <span>Tap one of the colors below to log your mood</span>
           </div>
         )}
       </div>

@@ -174,11 +174,14 @@ export const Providers: React.FC<{ children: React.ReactNode }> = ({ children })
 
   // --- DATA SYNCHRONIZATION AND MUTATIONS ---
   const defaultMoodsSeed = useMemo(() => [
-    { id: 'great', name: 'Great', color: '#22c55e', order: 0 },
+    { id: 'happy', name: 'Happy', color: '#22c55e', order: 0 },
     { id: 'good', name: 'Good', color: '#84cc16', order: 1 },
     { id: 'okay', name: 'Okay', color: '#facc15', order: 2 },
-    { id: 'bad', name: 'Bad', color: '#f97316', order: 3 },
-    { id: 'awful', name: 'Awful', color: '#ef4444', order: 4 },
+    { id: 'tired', name: 'Tired', color: '#3b82f6', order: 3 },
+    { id: 'bad', name: 'Bad', color: '#f97316', order: 4 },
+    { id: 'sad', name: 'Sad', color: '#a855f7', order: 5 },
+    { id: 'angry', name: 'Angry', color: '#ef4444', order: 6 },
+    { id: 'depressed', name: 'Depressed', color: '#6b7280', order: 7 },
   ], []);
 
   // Sync data whenever user or database changes
@@ -211,7 +214,7 @@ export const Providers: React.FC<{ children: React.ReactNode }> = ({ children })
       }
       setSettings(localSettings);
 
-      // Initialize Moods (Seeding if empty)
+      // Initialize Moods (Seeding if empty or updating default set)
       let localMoods: Mood[] = [];
       const savedMoods = localStorage.getItem(moodsKey);
       if (savedMoods) {
@@ -226,6 +229,36 @@ export const Providers: React.FC<{ children: React.ReactNode }> = ({ children })
           updatedAt: now
         }));
         localStorage.setItem(moodsKey, JSON.stringify(localMoods));
+      } else {
+        let modified = false;
+        localMoods = localMoods.map(m => {
+          if (m.id === 'great' || (m.name === 'Great' && m.id === 'great')) {
+            modified = true;
+            return { ...m, id: 'happy', name: 'Happy' };
+          }
+          if (m.id === 'awful' || (m.name === 'Awful' && m.id === 'awful')) {
+            modified = true;
+            return { ...m, id: 'angry', name: 'Angry' };
+          }
+          return m;
+        });
+
+        const existingIds = new Set(localMoods.map(m => m.id));
+        const now = new Date().toISOString();
+        defaultMoodsSeed.forEach(dm => {
+          if (!existingIds.has(dm.id) && (dm.id === 'tired' || dm.id === 'sad' || dm.id === 'depressed')) {
+            localMoods.push({
+              ...dm,
+              createdAt: now,
+              updatedAt: now
+            });
+            modified = true;
+          }
+        });
+
+        if (modified) {
+          localStorage.setItem(moodsKey, JSON.stringify(localMoods));
+        }
       }
       setMoods(localMoods);
 
