@@ -176,12 +176,13 @@ export const Providers: React.FC<{ children: React.ReactNode }> = ({ children })
   const defaultMoodsSeed = useMemo(() => [
     { id: 'happy', name: 'Happy', color: '#22c55e', order: 0 },
     { id: 'good', name: 'Good', color: '#84cc16', order: 1 },
-    { id: 'okay', name: 'Okay', color: '#facc15', order: 2 },
-    { id: 'tired', name: 'Tired', color: '#3b82f6', order: 3 },
-    { id: 'bad', name: 'Bad', color: '#f97316', order: 4 },
+    { id: 'okay', name: 'Okay', color: '#fef08a', order: 2 },
+    { id: 'bad', name: 'Bad', color: '#f97316', order: 3 },
+    { id: 'tired', name: 'Tired', color: '#3b82f6', order: 4 },
     { id: 'sad', name: 'Sad', color: '#a855f7', order: 5 },
-    { id: 'angry', name: 'Angry', color: '#ef4444', order: 6 },
-    { id: 'depressed', name: 'Depressed', color: '#6b7280', order: 7 },
+    { id: 'depressed', name: 'Depressed', color: '#6b7280', order: 6 },
+    { id: 'stressed', name: 'Stressed', color: '#facc15', order: 7 },
+    { id: 'angry', name: 'Angry', color: '#ef4444', order: 8 },
   ], []);
 
   // Sync data whenever user or database changes
@@ -240,13 +241,22 @@ export const Providers: React.FC<{ children: React.ReactNode }> = ({ children })
             modified = true;
             return { ...m, id: 'angry', name: 'Angry' };
           }
+          if (m.id === 'okay' && (m.color === '#fbbf24' || m.color === '#facc15')) {
+            modified = true;
+            return { ...m, color: '#fef08a' };
+          }
           return m;
         });
 
+        const defaultMap = new Map<string, { id: string; name: string; color: string; order: number }>(
+          defaultMoodsSeed.map(m => [m.id, m])
+        );
         const existingIds = new Set(localMoods.map(m => m.id));
         const now = new Date().toISOString();
+
+        // Add any missing default moods
         defaultMoodsSeed.forEach(dm => {
-          if (!existingIds.has(dm.id) && (dm.id === 'tired' || dm.id === 'sad' || dm.id === 'depressed')) {
+          if (!existingIds.has(dm.id)) {
             localMoods.push({
               ...dm,
               createdAt: now,
@@ -255,6 +265,18 @@ export const Providers: React.FC<{ children: React.ReactNode }> = ({ children })
             modified = true;
           }
         });
+
+        // Update orders for default moods to match standard order
+        localMoods = localMoods.map(m => {
+          const defaultItem = defaultMap.get(m.id);
+          if (defaultItem && m.order !== defaultItem.order) {
+            modified = true;
+            return { ...m, order: defaultItem.order };
+          }
+          return m;
+        });
+
+        localMoods.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
 
         if (modified) {
           localStorage.setItem(moodsKey, JSON.stringify(localMoods));
