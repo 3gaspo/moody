@@ -170,8 +170,6 @@ export const SettingsPage: React.FC = () => {
     try {
       await resetMoods();
       setShowResetModal(false);
-    } catch (err) {
-      console.error('Reset moods error:', err);
     } finally {
       setIsResetting(false);
     }
@@ -182,8 +180,6 @@ export const SettingsPage: React.FC = () => {
     try {
       await clearHistory();
       setShowResetModal(false);
-    } catch (err) {
-      console.error('Reset entries error:', err);
     } finally {
       setIsResetting(false);
     }
@@ -194,8 +190,6 @@ export const SettingsPage: React.FC = () => {
     try {
       await resetAll();
       setShowResetModal(false);
-    } catch (err) {
-      console.error('Reset all error:', err);
     } finally {
       setIsResetting(false);
     }
