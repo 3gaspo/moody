@@ -1,22 +1,27 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
 @import "tailwindcss";
+@import "./styles/theme.css";
+@import "./styles/navigation.css";
+@import "./styles/dialogs.css";
+@import "./styles/components.css";
+@import "./styles/patterns.css";
+@import "./styles/forms.css";
+@import "./styles/tools.css";
+@import "./styles/home.css";
 
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
 }
 
-@variant dark (&:where(.dark, .dark *));
+@custom-variant dark (&:where(.dark, .dark *));
 
 @layer utilities {
   @keyframes fadeIn {
     from {
       opacity: 0;
-      transform: translateY(8px);
     }
     to {
       opacity: 1;
-      transform: translateY(0);
     }
   }
 
@@ -30,7 +35,6 @@ html, body, #root {
   margin: 0;
   padding: 0;
   font-family: var(--font-sans);
-  overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -47,3 +51,5 @@ input[type="color"]::-moz-color-swatch {
   border: none;
   border-radius: 8px;
 }
+
+@source "../node_modules/@3gaspo/app-ui/src";

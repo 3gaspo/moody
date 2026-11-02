@@ -1,9 +1,15 @@
+import { ActionButton } from '@3gaspo/app-ui/ActionButton';
+import { ValidatedForm } from '../components/ValidatedForm';
+import { SettingsSwitch } from '../components/SettingsSwitch';
+import { PageHeader } from '../components/PageHeader';
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
+import React, { useState, useId } from 'react';
+import { Dialog, DialogActions } from '../components/Dialog';
+import { AddMoodDialog } from '../components/AddMoodDialog';
 import { useAuth, useData } from '../providers/Providers';
 import { firebaseReady } from '../lib/firebase';
 import {
@@ -32,12 +38,12 @@ const SUPPORT_URL = 'https://ko-fi.com/3gaspo';
 const APP_VERSION = packageJson.version;
 
 export const SettingsPage: React.FC = () => {
+  const editFormId = useId();
   const { user, signUp, signIn, signOut, error: authError, clearError } = useAuth();
   const {
     moods,
     entries,
     settings,
-    addMood,
     updateMood,
     deleteMood,
     resetMoods,
@@ -51,8 +57,6 @@ export const SettingsPage: React.FC = () => {
 
   // App settings state
   const [showAddMoodModal, setShowAddMoodModal] = useState(false);
-  const [newMoodName, setNewMoodName] = useState('');
-  const [newMoodColor, setNewMoodColor] = useState('#3b82f6');
   const [moodError, setMoodError] = useState<string | null>(null);
 
   // Edit Mood state
@@ -77,24 +81,6 @@ export const SettingsPage: React.FC = () => {
   const handleToggleDarkMode = () => {
     const nextTheme = settings.theme === 'dark' ? 'light' : 'dark';
     updateThemeSetting(nextTheme);
-  };
-
-  // Create Mood
-  const handleCreateMood = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setMoodError(null);
-    if (!newMoodName.trim()) {
-      setMoodError('Please enter a mood name.');
-      return;
-    }
-    try {
-      await addMood(newMoodName, newMoodColor);
-      setNewMoodName('');
-      setNewMoodColor('#3b82f6');
-      setShowAddMoodModal(false);
-    } catch (err: any) {
-      setMoodError(err.message || 'Failed to add mood.');
-    }
   };
 
   // Edit Mood Submit
@@ -216,40 +202,29 @@ export const SettingsPage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-8 pb-16 animate-fade-in" id="settings-view">
+    <div className="space-y-6 pb-16 animate-fade-in" id="settings-view">
       {/* Page Title & Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex flex-col space-y-1">
-          <h1 className="text-4xl font-bold tracking-tight text-gray-900 dark:text-white" id="settings-title">
-            Settings
-          </h1>
-        </div>
-        {isDevMode && (
-          <span className="text-xs font-black tracking-widest text-emerald-500 bg-emerald-500/10 px-3 py-1.5 rounded-full uppercase" id="dev-mode-label">
-            Dev Mode
-          </span>
-        )}
-      </div>
+      <PageHeader title="Settings" devMode={isDevMode} titleId="settings-title" devModeId="dev-mode-label" />
 
       {/* SECTION 1: Moods Settings (App-Specific) */}
-      <div className="bg-black/5 dark:bg-white/5 p-8 rounded-[32px] space-y-6" id="moods-settings-section">
+      <div className="ui-section-card bg-ui-section p-8 rounded-[32px] space-y-6" id="moods-settings-section">
         <div className="flex items-center justify-between">
           <div className="space-y-1">
-            <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100">
+            <h2 className="ui-section-title">
               Moods
             </h2>
           </div>
-          <button
+          <ActionButton scope="moody-settings"
             onClick={() => {
               setMoodError(null);
               setShowAddMoodModal(true);
             }}
-            className="flex items-center space-x-1 text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-full transition-transform active:scale-95 cursor-pointer shadow-sm"
+            className="ui-button flex items-center space-x-1 text-xs font-bold bg-ui-primary hover:bg-ui-primary-hover text-ui-primary-text px-4 py-2 rounded-full transition-transform cursor-pointer shadow-sm"
             id="add-mood-trigger"
           >
             <Plus className="w-4 h-4" />
-            <span>Add Mood</span>
-          </button>
+            <span>Add mood</span>
+          </ActionButton>
         </div>
 
         {/* Mood List */}
@@ -257,44 +232,43 @@ export const SettingsPage: React.FC = () => {
           {moods.map((mood) => (
             <div
               key={mood.id}
-              className="flex items-center justify-between p-4 bg-white dark:bg-black/20 rounded-2xl border border-black/5 dark:border-white/5 shadow-sm transition-all hover:shadow-md"
+              className={`ui-setting-list-row ui-setting-mood ui-item-card bg-ui-surface border border-ui-border shadow-sm ${deletingMoodId === mood.id ? 'ui-setting-mood--confirm' : ''}`}
             >
               <div className="flex items-center space-x-4">
                 <span
                   className="w-8 h-8 rounded-full shadow-inner flex items-center justify-center text-white text-xs font-bold"
                   style={{ backgroundColor: mood.color }}
                 />
-                <span className="font-semibold text-gray-800 dark:text-gray-100 text-base">
+                <span title={mood.name} className="ui-setting-list-name font-semibold text-ui-text text-base">
                   {mood.name}
                 </span>
               </div>
-              <div className="flex items-center space-x-2">
+              <div className="ui-setting-list-actions">
                 {deletingMoodId === mood.id ? (
                   <div className="flex items-center space-x-1.5 bg-red-500/10 p-1.5 rounded-2xl border border-red-500/20 animate-fade-in">
-                    <button
+                    <ActionButton scope="moody-settings"
                       onClick={async () => {
                         try {
                           await deleteMood(mood.id);
                           setDeletingMoodId(null);
                         } catch (err: any) {
                           setMoodError(err.message || 'Failed to delete mood.');
-                          setDeletingMoodId(null);
                         }
                       }}
-                      className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-xl transition-transform active:scale-95 cursor-pointer"
+                      className="ui-button ui-button-danger px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-xl transition-transform cursor-pointer"
                     >
                       Delete
-                    </button>
-                    <button
+                    </ActionButton>
+                    <ActionButton scope="moody-settings"
                       onClick={() => setDeletingMoodId(null)}
-                      className="px-3 py-1 bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 text-gray-700 dark:text-gray-300 text-xs font-bold rounded-xl transition-transform active:scale-95 cursor-pointer"
+                      className="ui-button ui-button-secondary px-3 py-1 bg-ui-section hover:bg-black/10 dark:hover:bg-white/10 text-ui-ink/70 text-xs font-bold rounded-xl transition-transform cursor-pointer"
                     >
                       Cancel
-                    </button>
+                    </ActionButton>
                   </div>
                 ) : (
                   <>
-                    <button
+                    <ActionButton scope="moody-settings"
                       onClick={() => {
                         setEditingMood(mood);
                         setEditMoodName(mood.name);
@@ -302,12 +276,12 @@ export const SettingsPage: React.FC = () => {
                         setMoodError(null);
                         setDeletingMoodId(null);
                       }}
-                      className="p-2.5 bg-black/5 dark:bg-white/5 rounded-full hover:bg-black/10 dark:hover:bg-white/10 text-gray-600 dark:text-gray-300 transition-colors cursor-pointer"
-                      title="Edit Mood"
+                      className="ui-icon-button ui-row-action bg-ui-section hover:bg-black/10 dark:hover:bg-white/10 text-ui-ink/60 transition-colors cursor-pointer"
+                      title="Edit mood"
                     >
                       <Edit2 className="w-4 h-4" />
-                    </button>
-                    <button
+                    </ActionButton>
+                    <ActionButton scope="moody-settings"
                       onClick={() => {
                         if (moods.length <= 1) {
                           setMoodError('You cannot delete the last mood. At least one mood configuration must remain.');
@@ -317,11 +291,11 @@ export const SettingsPage: React.FC = () => {
                         setDeletingMoodId(mood.id);
                       }}
                       disabled={moods.length <= 1}
-                      className="p-2.5 bg-red-500/10 text-red-500 rounded-full hover:bg-red-500/20 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
-                      title="Delete Mood"
+                      className="ui-icon-button ui-row-action bg-red-500/10 text-red-500 hover:bg-red-500/20 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                      title="Delete mood"
                     >
                       <Trash2 className="w-4 h-4" />
-                    </button>
+                    </ActionButton>
                   </>
                 )}
               </div>
@@ -331,77 +305,64 @@ export const SettingsPage: React.FC = () => {
       </div>
 
       {/* SECTION 2: Appearance */}
-      <div className="bg-black/5 dark:bg-white/5 p-8 rounded-[32px] space-y-5" id="appearance-settings-section">
+      <div className="ui-section-card bg-ui-section p-8 rounded-[32px] space-y-5" id="appearance-settings-section">
         <div className="space-y-1">
-          <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100">
-            Theme
+          <h2 className="ui-section-title">
+            Appearance
           </h2>
         </div>
 
         {/* Toggle Dark mode switch row */}
-        <div className="flex items-center justify-between p-5 bg-white dark:bg-black/20 rounded-2xl border border-black/5 dark:border-white/5 shadow-sm">
-          <div className="flex items-center space-x-3.5">
-            <span className="p-2.5 bg-purple-500/10 text-purple-500 rounded-xl">
+        <div className="ui-setting-row ui-item-card flex items-center justify-between p-5 bg-ui-surface rounded-2xl border border-ui-border shadow-sm">
+          <div className="ui-setting-label">
+            <span className="ui-setting-icon">
               <Palette className="w-5 h-5" />
             </span>
             <div>
-              <p className="font-semibold text-gray-800 dark:text-gray-100 text-base">Dark Mode</p>
-              <p className="text-xs text-gray-400 dark:text-gray-500">Toggle dark visual mode</p>
+              <p className="font-semibold text-ui-text text-base">Dark Mode</p>
             </div>
           </div>
 
           {/* Pill Switch */}
-          <button
-            onClick={handleToggleDarkMode}
-            className={`w-14 h-8 flex items-center rounded-full p-1 cursor-pointer transition-colors duration-300 focus:outline-none ${
-              settings.theme === 'dark' ? 'bg-blue-600' : 'bg-gray-300'
-            }`}
-            id="theme-pill-switch"
-          >
-            <span
-              className={`bg-white w-6 h-6 rounded-full shadow-md transform transition-transform duration-300 ${
-                settings.theme === 'dark' ? 'translate-x-6' : 'translate-x-0'
-              }`}
-            />
-          </button>
+          <SettingsSwitch checked={settings.theme === 'dark'} onClick={handleToggleDarkMode} label="Dark Mode" id="theme-pill-switch" />
         </div>
       </div>
 
       {/* SECTION 3: Account (Sign in / Create Account, or Display Signed In profile) */}
-      <div className="bg-black/5 dark:bg-white/5 p-8 rounded-[32px] space-y-5" id="account-settings-section">
+      <div className="ui-section-card bg-ui-section p-8 rounded-[32px] space-y-5" id="account-settings-section">
         <div className="space-y-1">
-          <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100">
+          <h2 className="ui-section-title">
             Account
           </h2>
         </div>
 
         {user ? (
           /* Logged In */
-          <div className="flex items-center space-x-4 p-5 bg-white dark:bg-black/20 rounded-2xl border border-black/5 dark:border-white/5 shadow-sm" id="signed-in-account-card">
-            <span className="w-12 h-12 rounded-full bg-blue-500/10 text-blue-500 flex items-center justify-center shadow-inner">
+          <div className="ui-item-card flex items-center space-x-4 p-5 bg-ui-surface rounded-2xl border border-ui-border shadow-sm" id="signed-in-account-card">
+            <span className="w-12 h-12 rounded-full bg-ui-section text-ui-ink flex items-center justify-center shadow-inner">
               <User className="w-6 h-6" />
             </span>
             <div className="flex-1">
-              <span className="text-[9px] font-black uppercase tracking-wider text-gray-400 dark:text-gray-500 block">
+              <span className="ui-section-title text-[9px] font-black uppercase tracking-wider text-ui-muted block">
                 Logged In User
               </span>
-              <p className="font-bold text-gray-800 dark:text-gray-100 text-lg break-all">
+              <p className="font-bold text-ui-text text-lg break-all">
                 {user.email}
               </p>
             </div>
           </div>
         ) : (
           /* Signed Out Auth Form */
-          <form onSubmit={handleAuthSubmit} className="p-6 bg-white dark:bg-black/20 rounded-3xl border border-black/5 dark:border-white/5 shadow-md space-y-4" id="signed-out-auth-form">
-            <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100 mb-1">
+          <ValidatedForm onSubmit={handleAuthSubmit} className="p-6 bg-ui-surface rounded-3xl border border-ui-border shadow-md space-y-4" id="signed-out-auth-form">
+            <h3 className="ui-item-title text-lg font-bold text-ui-text mb-1">
               {isSignUp ? 'Create account' : 'Sign in or Create account'}
             </h3>
 
             {/* Email Field */}
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-gray-400 dark:text-gray-500">Email Address</label>
+              <label className="ui-field-label text-xs font-bold text-ui-muted">Email Address</label>
               <div className="relative flex items-center">
-                <span className="absolute left-4 text-gray-400">
+                <span className="absolute left-4 text-ui-ink/40">
                   <Mail className="w-4 h-4" />
                 </span>
                 <input
@@ -410,7 +371,7 @@ export const SettingsPage: React.FC = () => {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="Enter email address"
-                  className="w-full pl-11 pr-4 py-3 bg-black/5 dark:bg-white/5 rounded-xl border border-black/10 dark:border-white/10 text-gray-900 dark:text-gray-100 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                  className="ui-field ui-field-leading w-full pl-11 pr-4 py-3 bg-ui-section rounded-xl border border-ui-ink/10 text-ui-text text-sm placeholder-ui-ink/40 focus:outline-none focus:ring-2 focus:ring-ui-ink/20"
                   id="auth-email-input"
                 />
               </div>
@@ -418,9 +379,9 @@ export const SettingsPage: React.FC = () => {
 
             {/* Password Field */}
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-gray-400 dark:text-gray-500">Password</label>
+              <label className="ui-field-label text-xs font-bold text-ui-muted">Password</label>
               <div className="relative flex items-center">
-                <span className="absolute left-4 text-gray-400">
+                <span className="absolute left-4 text-ui-ink/40">
                   <Lock className="w-4 h-4" />
                 </span>
                 <input
@@ -429,57 +390,58 @@ export const SettingsPage: React.FC = () => {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Enter secure password"
-                  className="w-full pl-11 pr-12 py-3 bg-black/5 dark:bg-white/5 rounded-xl border border-black/10 dark:border-white/10 text-gray-900 dark:text-gray-100 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                  className="ui-field ui-field-leading ui-field-trailing w-full pl-11 pr-12 py-3 bg-ui-section rounded-xl border border-ui-ink/10 text-ui-text text-sm placeholder-ui-ink/40 focus:outline-none focus:ring-2 focus:ring-ui-ink/20"
                   id="auth-password-input"
                 />
-                <button
+                <ActionButton scope="moody-settings"
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
+                  className="absolute right-4 text-ui-ink/40 hover:text-ui-ink/60 transition-colors cursor-pointer"
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
+                </ActionButton>
               </div>
             </div>
 
             {/* Submit Auth Button */}
-            <button
+            <ActionButton scope="moody-settings"
               type="submit"
               disabled={authFormLoading}
-              className="w-full py-3.5 bg-black dark:bg-white dark:text-black text-white font-bold rounded-xl hover:opacity-90 active:scale-98 transition-all cursor-pointer text-center text-sm shadow-sm"
+              className="ui-button ui-button-primary w-full py-3.5 bg-ui-primary text-ui-primary-text font-bold rounded-xl hover:opacity-90 transition-all cursor-pointer text-center text-sm shadow-sm"
               id="auth-submit-btn"
             >
               {authFormLoading ? 'Processing...' : isSignUp ? 'Create Account' : 'Sign In'}
-            </button>
+            </ActionButton>
 
             {/* Toggle Sign-In / Create Account Mode */}
             <div className="text-center">
-              <button
+              <ActionButton scope="moody-settings"
                 type="button"
                 onClick={() => {
                   setIsSignUp(!isSignUp);
                   clearError();
                 }}
-                className="text-xs font-bold text-gray-500 dark:text-gray-400 hover:underline cursor-pointer"
+                className="text-xs font-bold text-ui-muted hover:underline cursor-pointer"
                 id="toggle-auth-mode-btn"
               >
                 {isSignUp ? 'Already have an account? Sign In' : 'Need an account? Create account'}
-              </button>
+              </ActionButton>
             </div>
 
             {/* Error displays */}
             {authError && (
-              <div className="flex items-start space-x-2 p-3 bg-red-500/10 text-red-500 rounded-xl text-xs font-medium">
+              <div role="alert" className="ui-error flex items-start space-x-2 p-3 bg-red-500/10 text-red-500 rounded-xl text-xs font-medium">
                 <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
                 <p className="break-all">{authError}</p>
               </div>
             )}
-          </form>
+          </ValidatedForm>
         )}
       </div>
 
       {/* SECTION 4: Actions (Disconnect, Download, Reset) */}
-      <div className="bg-black/5 dark:bg-white/5 p-8 rounded-[32px] space-y-4" id="actions-settings-section">
+      <div className="ui-section-card bg-ui-section p-8 rounded-[32px] space-y-4" id="actions-settings-section">
+        <h2 className="ui-section-title">Actions</h2>
         {/* 1. Disconnect / Sign out */}
         {user && (
           showSignOutConfirm ? (
@@ -492,35 +454,35 @@ export const SettingsPage: React.FC = () => {
                   <AlertTriangle className="w-5 h-5 animate-pulse" />
                 </span>
                 <div>
-                  <p className="text-sm font-bold text-gray-800 dark:text-gray-100">Confirm session sign out?</p>
+                  <p className="text-sm font-bold text-ui-text">Confirm session sign out?</p>
                 </div>
               </div>
               <div className="flex items-center space-x-2 shrink-0">
-                <button
+                <ActionButton scope="moody-settings"
                   onClick={async () => {
                     try {
                       await signOut();
                       setShowSignOutConfirm(false);
                     } catch (err) {
-                      console.error('Sign out error:', err);
+                      throw err;
                     }
                   }}
-                  className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs rounded-xl active:scale-95 transition-all cursor-pointer"
+                  className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs rounded-xl transition-all cursor-pointer"
                 >
                   Confirm Sign Out
-                </button>
-                <button
+                </ActionButton>
+                <ActionButton scope="moody-settings"
                   onClick={() => setShowSignOutConfirm(false)}
-                  className="px-4 py-2 bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 text-gray-700 dark:text-gray-300 font-bold text-xs rounded-xl active:scale-95 transition-all cursor-pointer"
+                  className="ui-button ui-button-secondary px-4 py-2 bg-ui-section hover:bg-black/10 dark:hover:bg-white/10 text-ui-ink/70 font-bold text-xs rounded-xl transition-all cursor-pointer"
                 >
                   Cancel
-                </button>
+                </ActionButton>
               </div>
             </div>
           ) : (
-            <button
+            <ActionButton scope="moody-settings"
               onClick={() => setShowSignOutConfirm(true)}
-              className="w-full flex items-center p-5 bg-white dark:bg-black/20 rounded-2xl border border-black/5 dark:border-white/5 shadow-sm text-left hover:shadow-md transition-shadow active:scale-99 cursor-pointer"
+              className="ui-setting-action w-full flex items-center p-5 bg-ui-surface rounded-2xl border border-ui-border shadow-sm text-left hover:shadow-md transition-shadow cursor-pointer"
               id="action-disconnect-btn"
             >
               <div className="flex items-center space-x-3.5">
@@ -528,33 +490,33 @@ export const SettingsPage: React.FC = () => {
                   <LogOut className="w-5 h-5" />
                 </span>
                 <div>
-                  <p className="font-bold text-gray-800 dark:text-gray-100 text-base">Disconnect / Sign out</p>
+                  <p className="font-bold text-ui-text text-base">Disconnect / Sign out</p>
                 </div>
               </div>
-            </button>
+            </ActionButton>
           )
         )}
 
         {/* 2. Download data as CSV */}
-        <button
+        <ActionButton scope="moody-settings"
           onClick={handleCSVExport}
-          className="w-full flex items-center p-5 bg-white dark:bg-black/20 rounded-2xl border border-black/5 dark:border-white/5 shadow-sm text-left hover:shadow-md transition-shadow active:scale-99 cursor-pointer"
+          className="ui-setting-action w-full flex items-center p-5 bg-ui-surface rounded-2xl border border-ui-border shadow-sm text-left hover:shadow-md transition-shadow cursor-pointer"
           id="action-download-csv-btn"
         >
           <div className="flex items-center space-x-3.5">
-            <span className="p-2.5 bg-blue-500/10 text-blue-500 rounded-xl">
+            <span className="p-2.5 bg-ui-section text-ui-ink rounded-xl">
               <Download className="w-5 h-5" />
             </span>
             <div>
-              <p className="font-bold text-gray-800 dark:text-gray-100 text-base">Download data as CSV</p>
+              <p className="font-bold text-ui-text text-base">Download data as CSV</p>
             </div>
           </div>
-        </button>
+        </ActionButton>
 
         {/* 3. Reset data (Red theme) */}
-        <button
+        <ActionButton scope="moody-settings"
           onClick={() => setShowResetModal(true)}
-          className="w-full flex items-center p-5 bg-red-500/5 hover:bg-red-500/10 dark:bg-red-500/5 dark:hover:bg-red-500/10 rounded-2xl border border-red-500/10 text-left transition-colors active:scale-99 cursor-pointer"
+          className="ui-setting-action w-full flex items-center p-5 bg-red-500/5 hover:bg-red-500/10 dark:bg-red-500/5 dark:hover:bg-red-500/10 rounded-2xl border border-red-500/10 text-left transition-colors cursor-pointer"
           id="action-reset-data-btn"
         >
           <div className="flex items-center space-x-3.5">
@@ -565,11 +527,11 @@ export const SettingsPage: React.FC = () => {
               <p className="font-bold text-red-600 dark:text-red-500 text-base">Reset data</p>
             </div>
           </div>
-        </button>
+        </ActionButton>
       </div>
 
       {/* SECTION 5: Footer credits */}
-      <div className="pt-8 flex flex-col items-center justify-center text-center space-y-6 border-t border-black/5 dark:border-white/5" id="settings-footer-section">
+      <div className="pt-8 flex flex-col items-center justify-center text-center space-y-6 border-t border-ui-border" id="settings-footer-section">
         {/* Credit Logo */}
         <img
           src="/gaspo_logo.svg"
@@ -586,7 +548,7 @@ export const SettingsPage: React.FC = () => {
           href={SUPPORT_URL}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center space-x-2 px-6 py-3 bg-black dark:bg-white dark:text-black text-white rounded-full font-bold text-sm shadow-md hover:scale-105 active:scale-95 transition-all cursor-pointer"
+          className="inline-flex items-center space-x-2 px-6 py-3 bg-ui-primary text-ui-primary-text rounded-full font-bold text-sm shadow-md transition-all cursor-pointer"
           id="support-project-link"
         >
           <Heart className="w-4 h-4 fill-red-500 stroke-red-500" />
@@ -594,7 +556,7 @@ export const SettingsPage: React.FC = () => {
         </a>
 
         {/* Text credits */}
-        <div className="space-y-1 text-xs text-gray-400 dark:text-gray-500 font-semibold uppercase tracking-wider opacity-80">
+        <div className="ui-meta space-y-1 text-xs text-ui-muted font-semibold uppercase tracking-wider opacity-80">
           <p>Moody &mdash; version {APP_VERSION}</p>
           <p>GASPARD BERTHELIER</p>
           <p className="lowercase">gberthelier.projet@gmail.com</p>
@@ -602,226 +564,110 @@ export const SettingsPage: React.FC = () => {
       </div>
 
       {/* MODAL: ADD MOOD */}
-      {showAddMoodModal && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fade-in"
-          onClick={() => setShowAddMoodModal(false)}
-        >
-          <form
-            onSubmit={handleCreateMood}
-            onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-md bg-white dark:bg-neutral-900 rounded-[32px] p-8 space-y-5 shadow-xl border border-black/5 dark:border-white/5"
-          >
-            <div className="flex items-center justify-between">
-              <h3 className="text-xl font-bold text-gray-900 dark:text-white">Add Mood</h3>
-              <button
-                type="button"
-                onClick={() => setShowAddMoodModal(false)}
-                className="p-1 hover:bg-black/5 dark:hover:bg-white/5 rounded-full text-gray-400 transition-colors cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="space-y-4">
-              {/* Name */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-gray-400 dark:text-gray-500">Mood Label Name</label>
-                <input
-                  type="text"
-                  required
-                  value={newMoodName}
-                  onChange={(e) => setNewMoodName(e.target.value)}
-                  placeholder="e.g. Creative, Tired, Peaceful"
-                  className="w-full p-3.5 bg-black/5 dark:bg-white/5 rounded-xl border border-black/10 dark:border-white/10 text-gray-900 dark:text-gray-100 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
-                />
-              </div>
-
-              {/* Color */}
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-gray-400 dark:text-gray-500 block">Mood Color swatch</label>
-                <div className="flex items-center space-x-3 bg-black/5 dark:bg-white/5 p-3.5 rounded-xl border border-black/10 dark:border-white/10">
-                  <input
-                    type="color"
-                    value={newMoodColor}
-                    onChange={(e) => setNewMoodColor(e.target.value)}
-                    className="w-10 h-10 border-0 rounded-md cursor-pointer overflow-hidden p-0 bg-transparent"
-                  />
-                  <span className="text-sm font-semibold uppercase text-gray-600 dark:text-gray-300">
-                    {newMoodColor}
-                  </span>
-                </div>
-              </div>
-
-              {moodError && (
-                <div className="p-3 bg-red-500/10 text-red-500 rounded-xl text-xs font-medium flex items-center space-x-2">
-                  <AlertTriangle className="w-4 h-4 shrink-0" />
-                  <span>{moodError}</span>
-                </div>
-              )}
-            </div>
-
-            <div className="flex space-x-3 pt-3">
-              <button
-                type="submit"
-                className="flex-1 py-3 px-4 font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl active:scale-95 transition-transform cursor-pointer shadow-sm"
-              >
-                Create
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowAddMoodModal(false)}
-                className="py-3 px-5 font-bold text-gray-700 dark:text-gray-300 bg-black/5 dark:bg-white/5 rounded-xl hover:bg-black/10 dark:hover:bg-white/10 transition-colors cursor-pointer"
-              >
-                Cancel
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
+      <AddMoodDialog open={showAddMoodModal} onClose={() => setShowAddMoodModal(false)} />
 
       {/* MODAL: EDIT MOOD */}
       {editingMood && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fade-in"
-          onClick={() => setEditingMood(null)}
-        >
-          <form
-            onSubmit={handleEditMoodSubmit}
-            onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-md bg-white dark:bg-neutral-900 rounded-[32px] p-8 space-y-5 shadow-xl border border-black/5 dark:border-white/5"
-          >
-            <div className="flex items-center justify-between">
-              <h3 className="text-xl font-bold text-gray-900 dark:text-white">Edit Mood</h3>
-              <button
-                type="button"
-                onClick={() => setEditingMood(null)}
-                className="p-1 hover:bg-black/5 dark:hover:bg-white/5 rounded-full text-gray-400 transition-colors cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
+        <Dialog open={!!editingMood} onClose={() => setEditingMood(null)} title="Edit mood">
+          <ValidatedForm id={editFormId} onSubmit={handleEditMoodSubmit} className="space-y-5">
             <div className="space-y-4">
               {/* Name */}
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-gray-400 dark:text-gray-500">Mood Label Name</label>
+                <label className="ui-field-label text-xs font-bold text-ui-muted">Mood Label Name</label>
                 <input
                   type="text"
                   required
                   value={editMoodName}
                   onChange={(e) => setEditMoodName(e.target.value)}
-                  className="w-full p-3.5 bg-black/5 dark:bg-white/5 rounded-xl border border-black/10 dark:border-white/10 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                  className="ui-field w-full p-3.5 bg-ui-section rounded-xl border border-ui-ink/10 text-ui-text text-sm focus:outline-none focus:ring-2 focus:ring-ui-ink/20"
                 />
               </div>
 
               {/* Color */}
               <div className="space-y-2">
-                <label className="text-xs font-bold text-gray-400 dark:text-gray-500 block">Mood Color swatch</label>
-                <div className="flex items-center space-x-3 bg-black/5 dark:bg-white/5 p-3.5 rounded-xl border border-black/10 dark:border-white/10">
+                <label className="ui-field-label text-xs font-bold text-ui-muted block">Mood Color swatch</label>
+                <div className="flex items-center space-x-3 bg-ui-section p-3.5 rounded-xl border border-ui-ink/10">
                   <input
                     type="color"
                     value={editMoodColor}
                     onChange={(e) => setEditMoodColor(e.target.value)}
                     className="w-10 h-10 border-0 rounded-md cursor-pointer overflow-hidden p-0 bg-transparent"
                   />
-                  <span className="text-sm font-semibold uppercase text-gray-600 dark:text-gray-300">
+                  <span className="ui-meta text-sm font-semibold uppercase text-ui-ink/60">
                     {editMoodColor}
                   </span>
                 </div>
               </div>
 
               {moodError && (
-                <div className="p-3 bg-red-500/10 text-red-500 rounded-xl text-xs font-medium flex items-center space-x-2">
+                <div role="alert" className="ui-error p-3 bg-red-500/10 text-red-500 rounded-xl text-xs font-medium flex items-center space-x-2">
                   <AlertTriangle className="w-4 h-4 shrink-0" />
                   <span>{moodError}</span>
                 </div>
               )}
             </div>
 
-            <div className="flex space-x-3 pt-3">
-              <button
+            <DialogActions form={editFormId} cancel>
+              <ActionButton scope="moody-settings"
                 type="submit"
-                className="flex-1 py-3 px-4 font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl active:scale-95 transition-transform cursor-pointer shadow-sm"
+                className="ui-button ui-button-primary flex-1 py-3 px-4 font-bold text-ui-primary-text bg-ui-primary hover:bg-ui-primary-hover rounded-xl transition-transform cursor-pointer shadow-sm"
               >
                 Save
-              </button>
-              <button
-                type="button"
-                onClick={() => setEditingMood(null)}
-                className="py-3 px-5 font-bold text-gray-700 dark:text-gray-300 bg-black/5 dark:bg-white/5 rounded-xl hover:bg-black/10 dark:hover:bg-white/10 transition-colors cursor-pointer"
-              >
-                Cancel
-              </button>
-            </div>
-          </form>
-        </div>
+              </ActionButton>
+
+            </DialogActions>
+          </ValidatedForm>
+        </Dialog>
       )}
 
       {/* RESET DATA MODAL */}
       {showResetModal && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fade-in"
-          onClick={() => {
-            if (!isResetting) setShowResetModal(false);
-          }}
-          id="reset-confirmation-modal"
-        >
-          <div
-            className="w-full max-w-md bg-white dark:bg-neutral-900 rounded-[32px] p-8 space-y-6 shadow-xl border border-black/5 dark:border-white/5"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center space-x-3 text-red-500">
-              <AlertTriangle className="w-7 h-7" />
-              <h3 className="text-xl font-bold">Reset Data</h3>
-            </div>
-
-            <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">
-              Are you sure you want to proceed? Choose an action below to wipe data. This action is permanent and cannot be undone.
+        <Dialog open={showResetModal} onClose={() => setShowResetModal(false)} title="Reset data" busy={isResetting} id="reset-confirmation-modal">
+            <p className="ui-meta text-sm text-ui-muted leading-relaxed">
+              This action is permanent.
             </p>
 
-            <div className="flex flex-col space-y-3 pt-2">
+            <DialogActions>
               {/* Reset Moods to Default */}
-              <button
+              <ActionButton scope="moody-settings"
                 onClick={handleResetMoods}
                 disabled={isResetting}
-                className="w-full py-3.5 bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 font-bold rounded-2xl transition-all active:scale-98 disabled:opacity-50 cursor-pointer text-center text-sm"
+                className="ui-button ui-button-secondary w-full py-3.5 bg-ui-section hover:bg-ui-ink/10 text-ui-ink font-bold rounded-2xl transition-all disabled:opacity-50 cursor-pointer text-center text-sm"
                 id="reset-moods-btn"
               >
                 {isResetting ? 'Processing...' : 'Restore Default Moods'}
-              </button>
+              </ActionButton>
 
               {/* Clear History */}
-              <button
+              <ActionButton scope="moody-settings"
                 onClick={handleClearHistory}
                 disabled={isResetting}
-                className="w-full py-3.5 bg-red-500/10 hover:bg-red-500/20 text-red-500 font-bold rounded-2xl transition-all active:scale-98 disabled:opacity-50 cursor-pointer text-center text-sm"
+                className="w-full py-3.5 bg-red-500/10 hover:bg-red-500/20 text-red-500 font-bold rounded-2xl transition-all disabled:opacity-50 cursor-pointer text-center text-sm"
                 id="clear-history-btn"
               >
                 {isResetting ? 'Processing...' : 'Clear History'}
-              </button>
+              </ActionButton>
 
               {/* Reset All */}
-              <button
+              <ActionButton scope="moody-settings"
                 onClick={handleResetAll}
                 disabled={isResetting}
-                className="w-full py-3.5 bg-red-600 hover:bg-red-700 text-white font-bold rounded-2xl transition-all active:scale-98 disabled:opacity-50 cursor-pointer text-center text-sm"
+                className="w-full py-3.5 bg-red-600 hover:bg-red-700 text-white font-bold rounded-2xl transition-all disabled:opacity-50 cursor-pointer text-center text-sm"
                 id="reset-all-btn"
               >
                 {isResetting ? 'Processing...' : 'Reset All'}
-              </button>
+              </ActionButton>
 
               {/* Cancel */}
-              <button
+              <ActionButton scope="moody-settings"
                 onClick={() => setShowResetModal(false)}
                 disabled={isResetting}
-                className="w-full py-3.5 bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 text-gray-700 dark:text-gray-300 font-bold rounded-2xl transition-all active:scale-98 disabled:opacity-50 cursor-pointer text-center text-sm"
+                className="ui-button ui-button-secondary w-full py-3.5 bg-ui-section hover:bg-black/10 dark:hover:bg-white/10 text-ui-ink/70 font-bold rounded-2xl transition-all disabled:opacity-50 cursor-pointer text-center text-sm"
               >
                 Cancel
-              </button>
-            </div>
-          </div>
-        </div>
+              </ActionButton>
+            </DialogActions>
+        </Dialog>
       )}
     </div>
   );

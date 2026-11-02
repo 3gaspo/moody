@@ -1,3 +1,6 @@
+import { ActionButton } from '@3gaspo/app-ui/ActionButton';
+import { formatDate } from '@3gaspo/app-ui/formats';
+import { StateFeedback } from '../components/StateFeedback';
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
@@ -11,6 +14,7 @@ export const Home: React.FC<{ onNavigateToSettings: () => void }> = ({ onNavigat
   const { moods, entries, saveEntry, deleteEntry, loading } = useData();
   const [note, setNote] = useState('');
   const [isSavingNote, setIsSavingNote] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   // Get local date YYYY-MM-DD
   const getTodayDateString = () => {
@@ -37,153 +41,165 @@ export const Home: React.FC<{ onNavigateToSettings: () => void }> = ({ onNavigat
 
   // Handle tap on mood color button
   const handleMoodSelect = async (moodId: string) => {
+    setSaveError(null);
     try {
       await saveEntry(todayStr, moodId, note);
     } catch (err) {
       console.error('Error saving mood:', err);
+      setSaveError('Could not save mood. Try again.');
     }
   };
 
   // Clear mood for today
   const handleClearMood = async () => {
+    setSaveError(null);
     try {
       await saveEntry(todayStr, null, note);
     } catch (err) {
       console.error('Error clearing mood:', err);
+      setSaveError('Could not clear mood. Try again.');
     }
   };
 
   // Save note separately if needed (auto-saves on blur or save button)
   const handleSaveNote = async () => {
+    setSaveError(null);
     setIsSavingNote(true);
     try {
       await saveEntry(todayStr, selectedMoodId, note);
     } catch (err) {
       console.error('Error saving note:', err);
+      setSaveError('Could not save note. Try again.');
     } finally {
       setIsSavingNote(false);
     }
   };
 
   const getTodayFormatted = () => {
-    const options: Intl.DateTimeFormatOptions = { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' };
-    return new Date().toLocaleDateString(undefined, options);
+    return formatDate(new Date(), 'full');
   };
 
   return (
-    <div className="space-y-8 pb-12 animate-fade-in" id="home-view">
+    <div className="space-y-6 pb-12 animate-fade-in" id="home-view">
       {/* Header section */}
-      <div className="flex flex-col space-y-1">
-        <h1 className="text-4xl font-bold tracking-tight text-gray-900 dark:text-white" id="home-title">
+      <header className="app-home-header">
+        <h1 className="app-brand-title" id="home-title">
           Moody
         </h1>
-        <p className="text-sm font-medium uppercase tracking-wider text-gray-400 dark:text-gray-500" id="home-date">
-          {getTodayFormatted()}
-        </p>
-      </div>
+      </header>
+      <p className="ui-meta app-home-meta text-sm font-medium uppercase tracking-wider text-ui-muted" id="home-date">
+        {getTodayFormatted()}
+      </p>
 
       {/* Main card showing current mood state when selected */}
+      {saveError && <StateFeedback kind="error" title={saveError} />}
       {currentMood && (
         <div 
-          className="relative overflow-hidden p-6 sm:p-8 rounded-[32px] transition-all duration-500 ease-out flex items-center justify-between shadow-sm border border-black/[0.03] dark:border-white/[0.03]"
+          className="mood-status shadow-sm border border-black/[0.03] dark:border-white/[0.03]"
           style={{
             backgroundColor: `${currentMood.color}15`,
             borderLeft: `8px solid ${currentMood.color}`
           }}
           id="today-mood-status-card"
         >
-          <div className="flex items-center space-x-3">
+          <div className="mood-status__summary">
             <span 
-              className="w-5 h-5 rounded-full shadow-inner animate-pulse" 
+              className="w-3 h-3 shrink-0 rounded-full shadow-inner"
+              aria-hidden="true"
               style={{ backgroundColor: currentMood.color }}
             />
-            <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100">
+            <h2 className="mood-status__title text-ui-text">
               Feeling {currentMood.name}
             </h2>
           </div>
-          <button
-            onClick={handleClearMood}
-            className="flex items-center space-x-1 text-xs font-bold text-red-500 hover:text-red-600 bg-red-500/10 hover:bg-red-500/20 px-3 py-1.5 rounded-full transition-transform active:scale-95 cursor-pointer shrink-0"
+          <ActionButton
+            type="button"
+            scope="moody-today" onClick={handleClearMood}
+            className="ui-button mood-status__clear flex items-center gap-1 text-red-500 hover:text-red-600 bg-red-500/10 hover:bg-red-500/20 rounded-full cursor-pointer shrink-0"
             id="clear-mood-btn"
           >
             <X className="w-3.5 h-3.5" />
             <span>Clear Mood</span>
-          </button>
+          </ActionButton>
         </div>
       )}
 
       {/* Mood Palette Selection Section */}
-      <div className="bg-black/5 dark:bg-white/5 p-8 rounded-[32px] space-y-5" id="mood-palette-section">
-        <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100" id="mood-palette-heading">
-          How are you feeling today?
+      <div className="ui-section-card mood-palette bg-ui-section" id="mood-palette-section">
+        <h2 className="ui-section-title" id="mood-palette-heading">
+          Mood
         </h2>
         
         {loading && moods.length === 0 ? (
-          <div className="flex justify-center py-6 text-gray-400">Loading moods...</div>
+          <StateFeedback kind="loading" />
         ) : moods.length === 0 ? (
-          <div className="text-center py-6">
-            <p className="text-sm text-gray-400 mb-2">No moods configured.</p>
-            <button 
+          <StateFeedback title="No moods">
+            <ActionButton
               onClick={onNavigateToSettings}
-              className="text-xs text-blue-500 underline"
+              className="text-xs text-ui-ink underline"
             >
               Configure in Settings
-            </button>
-          </div>
+            </ActionButton>
+          </StateFeedback>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4" id="mood-buttons-grid">
+          <div className="mood-grid" id="mood-buttons-grid">
             {moods.map((mood) => {
               const isSelected = selectedMoodId === mood.id;
               return (
-                <button
+                <ActionButton
                   key={mood.id}
+                  type="button"
+                  aria-pressed={isSelected}
+                  title={mood.name}
                   onClick={() => handleMoodSelect(mood.id)}
                   style={{ 
                     borderColor: isSelected ? mood.color : 'transparent',
                     backgroundColor: isSelected ? `${mood.color}15` : undefined
                   }}
-                  className={`relative flex flex-col items-center justify-center p-5 rounded-2xl border-2 transition-all duration-300 bg-white dark:bg-black/20 hover:shadow-md cursor-pointer active:scale-95 group shadow-sm`}
+                  scope="moody-today" className="mood-button relative border-2 transition-colors bg-ui-surface hover:shadow-md cursor-pointer group shadow-sm"
                   id={`mood-btn-${mood.id}`}
                 >
                   <span 
-                    className="w-10 h-10 rounded-full mb-3 flex items-center justify-center shadow-md group-hover:scale-110 transition-transform" 
+                    className="mood-button__color rounded-full shadow-sm"
+                    aria-hidden="true"
                     style={{ backgroundColor: mood.color }}
                   />
-                  <span className="text-sm font-semibold text-gray-800 dark:text-gray-200">
+                  <span className="mood-button__name text-ui-text">
                     {mood.name}
                   </span>
                   {isSelected && (
                     <span 
-                      className="absolute top-2 right-2 w-2 h-2 rounded-full" 
+                      className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full"
+                      aria-hidden="true"
                       style={{ backgroundColor: mood.color }}
                     />
                   )}
-                </button>
+                </ActionButton>
               );
             })}
           </div>
         )}
       </div>
 
-      {/* Diary / Daily Note Section */}
-      <div className="bg-black/5 dark:bg-white/5 p-8 rounded-[32px] space-y-5" id="note-section">
+      {/* Diary / Note Section */}
+      <div className="ui-section-card bg-ui-section p-8 rounded-[32px] space-y-5" id="note-section">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
-            <MessageSquare className="w-4 h-4 text-gray-400 dark:text-gray-500" />
-            <h3 className="text-[10px] font-bold uppercase tracking-widest text-gray-400 dark:text-gray-500">
+            <MessageSquare className="w-4 h-4 text-ui-muted" />
+            <h3 className="ui-section-title text-[10px] font-bold uppercase tracking-widest text-ui-muted">
               Daily Note
             </h3>
           </div>
           {note.trim() !== (todayEntry?.note || '') && (
-            <button
+            <ActionButton
               onClick={handleSaveNote}
               disabled={isSavingNote}
-              className="flex items-center space-x-1 text-xs font-bold text-blue-500 bg-blue-500/10 px-3 py-1.5 rounded-full hover:bg-blue-500/20 disabled:opacity-50 transition-transform active:scale-95 cursor-pointer"
+              className="ui-button flex items-center space-x-1 text-xs font-bold text-ui-ink bg-ui-section px-3 py-1.5 rounded-full hover:bg-ui-ink/10 disabled:opacity-50 transition-transform cursor-pointer"
               id="save-note-btn"
             >
               <Save className="w-3.5 h-3.5" />
-              <span>{isSavingNote ? 'Saving...' : 'Save Note'}</span>
-            </button>
+              <span>{isSavingNote ? 'Saving…' : 'Save'}</span>
+            </ActionButton>
           )}
         </div>
 
@@ -193,7 +209,7 @@ export const Home: React.FC<{ onNavigateToSettings: () => void }> = ({ onNavigat
           onBlur={handleSaveNote}
           placeholder="Add optional notes about your day here..."
           rows={4}
-          className="w-full p-4 text-base rounded-2xl bg-white dark:bg-black/20 border border-black/10 dark:border-white/10 text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 resize-none shadow-sm"
+          className="ui-field w-full p-4 text-base rounded-2xl bg-ui-surface border border-ui-ink/10 text-ui-text placeholder-ui-ink/40 focus:outline-none focus:ring-2 focus:ring-ui-ink/20 resize-none shadow-sm"
           id="today-note-textarea"
         />
       </div>
