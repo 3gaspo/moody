@@ -1,5 +1,5 @@
 {
-  "name": "react-example",
+  "name": "moody",
   "private": true,
   "version": "0.0.3",
   "type": "module",
@@ -25,7 +25,7 @@
     "react-dom": "^19.0.1",
     "react-router-dom": "^7.18.1",
     "vite": "^6.2.3",
-    "@3gaspo/app-ui": "file:vendor/3gaspo-app-ui-0.1.6.tgz"
+    "@3gaspo/app-ui": "file:vendor/3gaspo-app-ui-0.1.8.tgz"
   },
   "devDependencies": {
     "@types/express": "^4.17.21",
