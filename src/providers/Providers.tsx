@@ -477,7 +477,6 @@ export const Providers: React.FC<{ children: React.ReactNode }> = ({ children })
       setMoods(remainingMoods);
       setEntries(updatedEntries);
     } else {
-      const { doc, writeBatch, collection, getDocs, query, where } = require('firebase/firestore');
       try {
         const batch = writeBatch(db!);
         
