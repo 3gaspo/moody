@@ -87,9 +87,15 @@ Une date possède au plus une entrée, contenant l’humeur choisie et sa note. 
 
 Les palettes importantes et les notes restent accessibles par défilement. Les humeurs et leurs couleurs sont conservées dans les deux modes de stockage.
 
+## Chargement et données initiales
+
+Un échec de lecture affiche un message bref avec la commande `Reload page`, sans présenter une fausse liste vide. Le rechargement relance la lecture des données existantes. Les échecs d'enregistrement conservent leurs messages et parcours de nouvelle tentative dans le formulaire ou l'action concernés.
+
+Les humeurs par défaut sont ajoutées à la première connexion. Les suppressions restent enregistrées en local et dans Firebase, y compris celle de la dernière humeur ; les connexions suivantes ne reconstituent pas la palette. Les notes des journées associées sont conservées et leur humeur est effacée. Les commandes explicites de restauration des humeurs et de réinitialisation restent disponibles dans Settings.
+
 ## Interface partagée
 
-L’application utilise `@3gaspo/app-ui`, actuellement en version 0.1.8, pour la navigation, les titres, dialogues, formulaires, commandes, retours d’état et formats visibles. L’interface utilise Inter et des thèmes clair et sombre communs. Les dates affichées utilisent `en-GB` et les heures le format 24 h ; les formats de stockage et d’export restent propres à l’application.
+L’application utilise `@3gaspo/app-ui`, actuellement en version 0.1.9, pour la navigation, les titres, dialogues, formulaires, commandes, retours d’état et formats visibles. L’interface utilise Inter et des thèmes clair et sombre communs. Les dates affichées utilisent `en-GB` et les heures le format 24 h ; les formats de stockage et d’export restent propres à l’application.
 
 L’archive est incluse dans [vendor/](vendor/) et référencée par `package.json` et `package-lock.json`. Ce dépôt est installable et déployable seul : aucun accès au dépôt source voisin `app-ui` ni à un registre privé n’est nécessaire. Relancer `npm ci` après un pull qui change les dépendances. La vérification du package partagé s’exécute automatiquement avant le build.
 

@@ -1,5 +1,5 @@
 import { ScreenBoundary } from './components/ScreenBoundary';
-import { StateFeedback } from './components/StateFeedback';
+import { StateFeedback, DataLoadError } from './components/StateFeedback';
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
@@ -7,7 +7,7 @@ import { StateFeedback } from './components/StateFeedback';
 
 import React, { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
-import { Providers, useAuth } from './providers/Providers';
+import { Providers, useAuth, useData } from './providers/Providers';
 import { Home } from './pages/Home';
 const CalendarView = lazy(() => import('./pages/Calendar').then(module => ({ default: module.CalendarView })));
 const Statistics = lazy(() => import('./pages/Statistics').then(module => ({ default: module.Statistics })));
@@ -17,10 +17,12 @@ import { BottomNavigation } from './components/BottomNavigation';
 const AuthScreen = lazy(() => import('./components/AuthScreen').then(module => ({ default: module.AuthScreen })));
 
 const AppContent: React.FC = () => {
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, loadError: authLoadError } = useAuth();
+  const { loading: dataLoading, error: dataError } = useData();
   const navigate = useNavigate();
 
   // Render a clean loading indicator while auth is resolving
+  if (authLoadError) return <div className="app-page"><DataLoadError /></div>;
   if (authLoading) return <div className="min-h-screen bg-ui-page flex items-center justify-center"><StateFeedback kind="loading" /></div>;
 
   // Standalone independent login/signup window if user is not authenticated
@@ -35,7 +37,7 @@ const AppContent: React.FC = () => {
         
         {/* Main Routed Area */}
         <div className="flex-1">
-          <ScreenBoundary><Suspense fallback={<StateFeedback kind="loading" />}>
+          <ScreenBoundary>{dataError ? <DataLoadError /> : dataLoading ? <StateFeedback kind="loading" /> : <Suspense fallback={<StateFeedback kind="loading" />}>
           <Routes>
             <Route path="/" element={<Navigate to="/home" replace />} />
             
@@ -54,7 +56,7 @@ const AppContent: React.FC = () => {
             {/* Catch-all redirection */}
             <Route path="*" element={<Navigate to="/home" replace />} />
           </Routes>
-          </Suspense></ScreenBoundary>
+          </Suspense>}</ScreenBoundary>
         </div>
 
         {/* Fixed Bottom Navigation (Exactly Four Bottom Tabs) */}

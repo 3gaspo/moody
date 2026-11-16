@@ -277,14 +277,9 @@ export const SettingsPage: React.FC = () => {
                     </ActionButton>
                     <ActionButton scope="moody-settings"
                       onClick={() => {
-                        if (moods.length <= 1) {
-                          setMoodError('You cannot delete the last mood. At least one mood configuration must remain.');
-                          return;
-                        }
                         setMoodError(null);
                         setDeletingMoodId(mood.id);
                       }}
-                      disabled={moods.length <= 1}
                       className="ui-icon-button ui-row-action bg-red-500/10 text-red-500 hover:bg-red-500/20 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
                       title="Delete mood"
                     >

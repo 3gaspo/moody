@@ -26,6 +26,8 @@ import {
   query,
   orderBy,
   getDocs,
+  getDoc,
+  limit,
   writeBatch,
   setDoc,
   updateDoc,
@@ -53,6 +55,7 @@ export const Providers: React.FC<{ children: React.ReactNode }> = ({ children })
   const [user, setUser] = useState<UserSession | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [authError, setAuthError] = useState<string | null>(null);
+  const [sessionLoadError, setSessionLoadError] = useState(false);
 
   // --- DATA STATE ---
   const [moods, setMoods] = useState<Mood[]>([]);
@@ -66,40 +69,46 @@ export const Providers: React.FC<{ children: React.ReactNode }> = ({ children })
 
   // --- LOCAL AUTH IMPLEMENTATION ---
   useEffect(() => {
-    if (!isFirebaseMode) {
-      // Local Auth initialization
-      const signedOutFlag = localStorage.getItem('moody_local_signed_out');
-      const savedUser = localStorage.getItem('moody_local_user');
+    try {
+      if (!isFirebaseMode) {
+        // Local Auth initialization
+        const signedOutFlag = localStorage.getItem('moody_local_signed_out');
+        const savedUser = localStorage.getItem('moody_local_user');
 
-      if (signedOutFlag === 'true') {
-        setUser(null);
-      } else if (savedUser) {
-        setUser(JSON.parse(savedUser));
-      } else {
-        // First launch: Create default local user and sign them in
-        const defaultUser = { uid: 'local-user-id', email: 'local-user@example.com' };
-        localStorage.setItem('moody_local_user', JSON.stringify(defaultUser));
-        localStorage.removeItem('moody_local_signed_out');
-        setUser(defaultUser);
-      }
-      setAuthLoading(false);
-    } else {
-      // Firebase Auth initialization
-      const unsubscribe = onAuthStateChanged(auth!, (firebaseUser: any) => {
-        if (firebaseUser) {
-          setUser({
-            uid: firebaseUser.uid,
-            email: firebaseUser.email || 'user@firebase.com'
-          });
-        } else {
+        if (signedOutFlag === 'true') {
           setUser(null);
+        } else if (savedUser) {
+          setUser(JSON.parse(savedUser));
+        } else {
+          // First launch: Create default local user and sign them in
+          const defaultUser = { uid: 'local-user-id', email: 'local-user@example.com' };
+          localStorage.setItem('moody_local_user', JSON.stringify(defaultUser));
+          localStorage.removeItem('moody_local_signed_out');
+          setUser(defaultUser);
         }
         setAuthLoading(false);
-      }, (err: any) => {
-        setAuthError(err.message);
-        setAuthLoading(false);
-      });
-      return () => unsubscribe();
+      } else {
+        // Firebase Auth initialization
+        const unsubscribe = onAuthStateChanged(auth!, (firebaseUser: any) => {
+          if (firebaseUser) {
+            setUser({
+              uid: firebaseUser.uid,
+              email: firebaseUser.email || 'user@firebase.com'
+            });
+          } else {
+            setUser(null);
+          }
+          setAuthLoading(false);
+        }, (err: any) => {
+          setSessionLoadError(true);
+          setAuthLoading(false);
+        });
+        return () => unsubscribe();
+      }
+    } catch (error) {
+      console.error("Could not load session:", error);
+      setSessionLoadError(true);
+      setAuthLoading(false);
     }
   }, [isFirebaseMode]);
 
@@ -199,171 +208,99 @@ export const Providers: React.FC<{ children: React.ReactNode }> = ({ children })
     setDataError(null);
 
     if (!isFirebaseMode) {
-      // Local Database initialization & sync
-      const uid = user.uid;
-      const moodsKey = `moody_moods_${uid}`;
-      const entriesKey = `moody_entries_${uid}`;
-      const settingsKey = `moody_settings_${uid}`;
+      try {
+        // Local Database initialization & sync
+        const uid = user.uid;
+        const moodsKey = `moody_moods_${uid}`;
+        const entriesKey = `moody_entries_${uid}`;
+        const settingsKey = `moody_settings_${uid}`;
 
-      // Initialize Settings
-      let localSettings: AppSettings = { theme: 'light' };
-      const savedSettings = localStorage.getItem(settingsKey);
-      if (savedSettings) {
-        localSettings = JSON.parse(savedSettings);
-      } else {
-        localStorage.setItem(settingsKey, JSON.stringify(localSettings));
-      }
-      setSettings(localSettings);
-
-      // Initialize Moods (Seeding if empty or updating default set)
-      let localMoods: Mood[] = [];
-      const savedMoods = localStorage.getItem(moodsKey);
-      if (savedMoods) {
-        localMoods = JSON.parse(savedMoods);
-      }
-
-      if (localMoods.length === 0) {
-        const now = new Date().toISOString();
-        localMoods = defaultMoodsSeed.map(m => ({
-          ...m,
-          createdAt: now,
-          updatedAt: now
-        }));
-        localStorage.setItem(moodsKey, JSON.stringify(localMoods));
-      } else {
-        let modified = false;
-        localMoods = localMoods.map(m => {
-          if (m.id === 'great' || (m.name === 'Great' && m.id === 'great')) {
-            modified = true;
-            return { ...m, id: 'happy', name: 'Happy' };
-          }
-          if (m.id === 'awful' || (m.name === 'Awful' && m.id === 'awful')) {
-            modified = true;
-            return { ...m, id: 'angry', name: 'Angry' };
-          }
-          if (m.id === 'okay' && (m.color === '#fbbf24' || m.color === '#facc15')) {
-            modified = true;
-            return { ...m, color: '#fef08a' };
-          }
-          return m;
-        });
-
-        const defaultMap = new Map<string, { id: string; name: string; color: string; order: number }>(
-          defaultMoodsSeed.map(m => [m.id, m])
-        );
-        const existingIds = new Set(localMoods.map(m => m.id));
-        const now = new Date().toISOString();
-
-        // Add any missing default moods
-        defaultMoodsSeed.forEach(dm => {
-          if (!existingIds.has(dm.id)) {
-            localMoods.push({
-              ...dm,
-              createdAt: now,
-              updatedAt: now
-            });
-            modified = true;
-          }
-        });
-
-        // Update orders for default moods to match standard order
-        localMoods = localMoods.map(m => {
-          const defaultItem = defaultMap.get(m.id);
-          if (defaultItem && m.order !== defaultItem.order) {
-            modified = true;
-            return { ...m, order: defaultItem.order };
-          }
-          return m;
-        });
-
-        localMoods.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
-
-        if (modified) {
-          localStorage.setItem(moodsKey, JSON.stringify(localMoods));
-        }
-      }
-      setMoods(localMoods);
-
-      // Initialize Entries
-      let localEntries: Record<string, MoodEntry> = {};
-      const savedEntries = localStorage.getItem(entriesKey);
-      if (savedEntries) {
-        localEntries = JSON.parse(savedEntries);
-      }
-      setEntries(localEntries);
-      setDataLoading(false);
-    } else {
-      // Firebase Database real-time sync
-      const uid = user.uid;
-
-      // 1. Sync Settings
-      const settingsRef = doc(db!, 'users', uid, 'settings', 'main');
-      const unsubscribeSettings = onSnapshot(settingsRef, (snapshot: any) => {
-        if (snapshot.exists()) {
-          setSettings(snapshot.data() as AppSettings);
+        // Initialize Settings
+        let localSettings: AppSettings = { theme: 'light' };
+        const savedSettings = localStorage.getItem(settingsKey);
+        if (savedSettings) {
+          localSettings = JSON.parse(savedSettings);
         } else {
-          // Default settings if none exist
-          setSettings({ theme: 'light' });
+          localStorage.setItem(settingsKey, JSON.stringify(localSettings));
         }
-      }, (err: any) => {
-        setDataError(err.message);
-      });
+        setSettings(localSettings);
 
-      // 2. Sync Moods with Automatic Seeding
-      const moodsQuery = query(collection(db!, 'users', uid, 'moods'), orderBy('order'));
-      const unsubscribeMoods = onSnapshot(moodsQuery, async (snapshot: any) => {
-        const list: Mood[] = [];
-        snapshot.forEach((docSnap: any) => {
-          list.push(docSnap.data() as Mood);
-        });
+        // Only a new account gets defaults. An empty saved palette is intentional.
+        const savedMoods = localStorage.getItem(moodsKey);
+        const firstConnection = savedSettings === null && savedMoods === null && localStorage.getItem(entriesKey) === null;
+        const now = new Date().toISOString();
+        const localMoods: Mood[] = savedMoods !== null
+          ? JSON.parse(savedMoods)
+          : firstConnection ? defaultMoodsSeed.map(m => ({ ...m, createdAt: now, updatedAt: now })) : [];
+        if (savedMoods === null) localStorage.setItem(moodsKey, JSON.stringify(localMoods));
+        setMoods(localMoods);
 
-        if (list.length === 0) {
-          // Seed default moods idempotently
-          try {
-            const batch = writeBatch(db!);
-            const now = new Date().toISOString();
-            defaultMoodsSeed.forEach(m => {
-              const mRef = doc(db!, 'users', uid, 'moods', m.id);
-              batch.set(mRef, {
-                id: m.id,
-                name: m.name,
-                color: m.color,
-                order: m.order,
-                createdAt: now,
-                updatedAt: now
-              });
-            });
-            // Also write settings default
-            batch.set(settingsRef, { theme: 'light' }, { merge: true });
-            await batch.commit();
-          } catch (err) {
-            handleFirestoreError(err, OperationType.WRITE, `users/${uid}/moods`);
-          }
-        } else {
-          setMoods(list);
+        // Initialize Entries
+        let localEntries: Record<string, MoodEntry> = {};
+        const savedEntries = localStorage.getItem(entriesKey);
+        if (savedEntries) {
+          localEntries = JSON.parse(savedEntries);
         }
+        setEntries(localEntries);
         setDataLoading(false);
-      }, (err: any) => {
-        handleFirestoreError(err, OperationType.GET, `users/${uid}/moods`);
-      });
-
-      // 3. Sync Entries
-      const entriesQuery = collection(db!, 'users', uid, 'entries');
-      const unsubscribeEntries = onSnapshot(entriesQuery, (snapshot: any) => {
-        const dict: Record<string, MoodEntry> = {};
-        snapshot.forEach((docSnap: any) => {
-          dict[docSnap.id] = docSnap.data() as MoodEntry;
-        });
-        setEntries(dict);
-      }, (err: any) => {
-        handleFirestoreError(err, OperationType.GET, `users/${uid}/entries`);
-      });
-
-      return () => {
-        unsubscribeSettings();
-        unsubscribeMoods();
-        unsubscribeEntries();
+      } catch (error) {
+        console.error("Could not load Moody data:", error);
+        setDataError("Could not load data.");
+        setDataLoading(false);
+      }
+    } else {
+      const uid = user.uid;
+      let active = true;
+      const unsubscribers: (() => void)[] = [];
+      const loaded = new Set<string>();
+      const ready = (name: string) => {
+        if (!active) return;
+        loaded.add(name);
+        if (loaded.size === 3) setDataLoading(false);
       };
+      const fail = (error: unknown) => {
+        if (!active) return;
+        console.error('Could not load Moody data:', error);
+        setDataError('Could not load data.');
+        setDataLoading(false);
+      };
+      const initialize = async () => {
+        const settingsRef = doc(db!, 'users', uid, 'settings', 'main');
+        const savedSettings = await getDoc(settingsRef);
+        if (!active) return;
+        if (!savedSettings.exists()) {
+          const [existingMoods, existingEntries] = await Promise.all([
+            getDocs(query(collection(db!, 'users', uid, 'moods'), limit(1))),
+            getDocs(query(collection(db!, 'users', uid, 'entries'), limit(1))),
+          ]);
+          if (!active) return;
+          const batch = writeBatch(db!);
+          if (existingMoods.empty && existingEntries.empty) {
+            const now = new Date().toISOString();
+            defaultMoodsSeed.forEach(m => batch.set(doc(db!, 'users', uid, 'moods', m.id), { ...m, createdAt: now, updatedAt: now }));
+          }
+          batch.set(settingsRef, { theme: 'light' }, { merge: true });
+          await batch.commit();
+        }
+        if (!active) return;
+        unsubscribers.push(onSnapshot(settingsRef, snapshot => {
+          if (!active) return;
+          setSettings(snapshot.exists() ? snapshot.data() as AppSettings : { theme: 'light' });
+          ready('settings');
+        }, fail));
+        unsubscribers.push(onSnapshot(query(collection(db!, 'users', uid, 'moods'), orderBy('order')), snapshot => {
+          if (!active) return;
+          setMoods(snapshot.docs.map(item => item.data() as Mood));
+          ready('moods');
+        }, fail));
+        unsubscribers.push(onSnapshot(collection(db!, 'users', uid, 'entries'), snapshot => {
+          if (!active) return;
+          setEntries(Object.fromEntries(snapshot.docs.map(item => [item.id, item.data() as MoodEntry])));
+          ready('entries');
+        }, fail));
+      };
+      initialize().catch(fail);
+      return () => { active = false; unsubscribers.forEach(unsubscribe => unsubscribe()); };
     }
   }, [user, isFirebaseMode, defaultMoodsSeed]);
 
@@ -445,9 +382,6 @@ export const Providers: React.FC<{ children: React.ReactNode }> = ({ children })
 
   const deleteMood = async (id: string): Promise<void> => {
     if (!user) return;
-    if (moods.length <= 1) {
-      throw new Error('You must keep at least one mood configuration.');
-    }
     const uid = user.uid;
 
     if (!isFirebaseMode) {
@@ -478,11 +412,7 @@ export const Providers: React.FC<{ children: React.ReactNode }> = ({ children })
       setEntries(updatedEntries);
     } else {
       try {
-        const batch = writeBatch(db!);
-        
-        // Delete the mood document
-        const moodRef = doc(db!, 'users', uid, 'moods', id);
-        batch.delete(moodRef);
+        const writes: ((batch: ReturnType<typeof writeBatch>) => void)[] = [];
 
         // Fetch affected historical entries to update their moodId to null
         const entriesQuery = query(
@@ -493,20 +423,26 @@ export const Providers: React.FC<{ children: React.ReactNode }> = ({ children })
         const now = new Date().toISOString();
         
         querySnapshot.forEach((docSnap: any) => {
-          batch.update(docSnap.ref, {
+          writes.push(batch => batch.update(docSnap.ref, {
             moodId: null,
             updatedAt: now
-          });
+          }));
         });
 
         // Reorder remaining moods to avoid order breakage
         const remaining = moods.filter(m => m.id !== id);
         remaining.forEach((m, index) => {
           const mRef = doc(db!, 'users', uid, 'moods', m.id);
-          batch.update(mRef, { order: index });
+          writes.push(batch => batch.update(mRef, { order: index }));
         });
 
-        await batch.commit();
+        // Keep the mood until its history has been neutralized; rejected batches can be retried.
+        writes.push(batch => batch.delete(doc(db!, 'users', uid, 'moods', id)));
+        for (let offset = 0; offset < writes.length; offset += 400) {
+          const batch = writeBatch(db!);
+          writes.slice(offset, offset + 400).forEach(write => write(batch));
+          await batch.commit();
+        }
       } catch (err) {
         handleFirestoreError(err, OperationType.WRITE, `users/${uid}/moods`);
       }
@@ -624,7 +560,7 @@ export const Providers: React.FC<{ children: React.ReactNode }> = ({ children })
 
     if (!isFirebaseMode) {
       const settingsKey = `moody_settings_${uid}`;
-      const newSettings = { theme };
+      const newSettings = { ...settings, theme };
       localStorage.setItem(settingsKey, JSON.stringify(newSettings));
       setSettings(newSettings);
     } else {
@@ -751,11 +687,12 @@ export const Providers: React.FC<{ children: React.ReactNode }> = ({ children })
     user,
     loading: authLoading,
     error: authError,
+    loadError: sessionLoadError,
     signUp,
     signIn,
     signOut,
     clearError
-  }), [user, authLoading, authError]);
+  }), [user, authLoading, authError, sessionLoadError]);
 
   const dataValue = useMemo<DataProviderInterface>(() => ({
     moods,

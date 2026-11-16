@@ -44,6 +44,7 @@ export interface AuthProviderInterface {
   signIn: (email: string, password: string) => Promise<UserSession>;
   signOut: () => Promise<void>;
   clearError: () => void;
+  loadError: boolean;
 }
 
 export interface DataProviderInterface {
