@@ -4,6 +4,7 @@
  */
 
 import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
+import { DEFAULT_THEME } from '@3gaspo/app-ui/themePreference';
 import {
   Mood,
   MoodEntry,
@@ -60,7 +61,7 @@ export const Providers: React.FC<{ children: React.ReactNode }> = ({ children })
   // --- DATA STATE ---
   const [moods, setMoods] = useState<Mood[]>([]);
   const [entries, setEntries] = useState<Record<string, MoodEntry>>({});
-  const [settings, setSettings] = useState<AppSettings>({ theme: 'light' });
+  const [settings, setSettings] = useState<AppSettings>({ theme: DEFAULT_THEME });
   const [dataLoading, setDataLoading] = useState(false);
   const [dataError, setDataError] = useState<string | null>(null);
 
@@ -199,7 +200,7 @@ export const Providers: React.FC<{ children: React.ReactNode }> = ({ children })
     if (!user) {
       setMoods([]);
       setEntries({});
-      setSettings({ theme: 'light' });
+      setSettings({ theme: DEFAULT_THEME });
       setDataLoading(false);
       return;
     }
@@ -216,10 +217,11 @@ export const Providers: React.FC<{ children: React.ReactNode }> = ({ children })
         const settingsKey = `moody_settings_${uid}`;
 
         // Initialize Settings
-        let localSettings: AppSettings = { theme: 'light' };
+        let localSettings: AppSettings = { theme: DEFAULT_THEME };
         const savedSettings = localStorage.getItem(settingsKey);
         if (savedSettings) {
-          localSettings = JSON.parse(savedSettings);
+          const saved: Partial<AppSettings> = JSON.parse(savedSettings);
+          localSettings = { ...saved, theme: saved.theme ?? DEFAULT_THEME };
         } else {
           localStorage.setItem(settingsKey, JSON.stringify(localSettings));
         }
@@ -279,13 +281,14 @@ export const Providers: React.FC<{ children: React.ReactNode }> = ({ children })
             const now = new Date().toISOString();
             defaultMoodsSeed.forEach(m => batch.set(doc(db!, 'users', uid, 'moods', m.id), { ...m, createdAt: now, updatedAt: now }));
           }
-          batch.set(settingsRef, { theme: 'light' }, { merge: true });
+          batch.set(settingsRef, { theme: DEFAULT_THEME }, { merge: true });
           await batch.commit();
         }
         if (!active) return;
         unsubscribers.push(onSnapshot(settingsRef, snapshot => {
           if (!active) return;
-          setSettings(snapshot.exists() ? snapshot.data() as AppSettings : { theme: 'light' });
+          const saved = snapshot.data() as Partial<AppSettings> | undefined;
+          setSettings({ ...saved, theme: saved?.theme ?? DEFAULT_THEME });
           ready('settings');
         }, fail));
         unsubscribers.push(onSnapshot(query(collection(db!, 'users', uid, 'moods'), orderBy('order')), snapshot => {
@@ -627,11 +630,11 @@ export const Providers: React.FC<{ children: React.ReactNode }> = ({ children })
 
       localStorage.setItem(moodsKey, JSON.stringify(reseededMoods));
       localStorage.setItem(entriesKey, JSON.stringify({}));
-      localStorage.setItem(settingsKey, JSON.stringify({ theme: 'light' }));
+      localStorage.setItem(settingsKey, JSON.stringify({ theme: DEFAULT_THEME }));
 
       setMoods(reseededMoods);
       setEntries({});
-      setSettings({ theme: 'light' });
+      setSettings({ theme: DEFAULT_THEME });
     } else {
       try {
         // Delete all entries and moods
@@ -662,12 +665,12 @@ export const Providers: React.FC<{ children: React.ReactNode }> = ({ children })
         });
 
         const settingsRef = doc(db!, 'users', uid, 'settings', 'main');
-        batch.set(settingsRef, { theme: 'light' });
+        batch.set(settingsRef, { theme: DEFAULT_THEME });
 
         await batch.commit();
         setMoods(reseededMoods);
         setEntries({});
-        setSettings({ theme: 'light' });
+        setSettings({ theme: DEFAULT_THEME });
       } catch (err) {
         handleFirestoreError(err, OperationType.WRITE, `users/${uid}`);
       }

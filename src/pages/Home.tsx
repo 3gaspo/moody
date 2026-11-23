@@ -1,4 +1,5 @@
 import { ActionButton } from '@3gaspo/app-ui/ActionButton';
+import { useLocalDay } from '@3gaspo/app-ui/useLocalDay';
 import { formatDate } from '@3gaspo/app-ui/formats';
 import { StateFeedback } from '../components/StateFeedback';
 /**
@@ -6,19 +7,24 @@ import { StateFeedback } from '../components/StateFeedback';
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useData } from '../providers/Providers';
 import { Smile, X, MessageSquare, Save } from 'lucide-react';
 
 export const Home: React.FC<{ onNavigateToSettings: () => void }> = ({ onNavigateToSettings }) => {
   const { moods, entries, saveEntry, deleteEntry, loading } = useData();
-  const [note, setNote] = useState('');
-  const [isSavingNote, setIsSavingNote] = useState(false);
+  const today = useLocalDay();
+  const [drafts, setDrafts] = useState<Record<string, { value: string; revision: number; acknowledged: boolean }>>({});
+  const revision = useRef(0);
+  const writes = useRef(Promise.resolve());
+  const inFlight = useRef(new Map<string, Promise<void>>());
+  const [pending, setPending] = useState(0);
+  const isSavingNote = pending > 0;
   const [saveError, setSaveError] = useState<string | null>(null);
 
   // Get local date YYYY-MM-DD
   const getTodayDateString = () => {
-    const d = new Date();
+    const d = today;
     const yyyy = d.getFullYear();
     const mm = String(d.getMonth() + 1).padStart(2, '0');
     const dd = String(d.getDate()).padStart(2, '0');
@@ -29,50 +35,64 @@ export const Home: React.FC<{ onNavigateToSettings: () => void }> = ({ onNavigat
   const todayEntry = entries[todayStr];
   const selectedMoodId = todayEntry?.moodId || null;
   const currentMood = moods.find(m => m.id === selectedMoodId);
+  const draft = drafts[todayStr];
+  const note = draft?.value ?? todayEntry?.note ?? '';
+  const desiredMood = useRef({ date: todayStr, id: selectedMoodId });
+  if (desiredMood.current.date !== todayStr || !pending) desiredMood.current = { date: todayStr, id: selectedMoodId };
 
-  // Sync note input with database state
+  // Accept the saved snapshot only after it acknowledges this exact draft.
+  // Older snapshots and unrelated entry updates cannot replace active typing.
   useEffect(() => {
-    if (todayEntry) {
-      setNote(todayEntry.note || '');
-    } else {
-      setNote('');
-    }
-  }, [todayEntry]);
+    if (!draft?.acknowledged || draft.value.trim() !== (todayEntry?.note ?? '')) return;
+    setDrafts(previous => {
+      if (previous[todayStr] !== draft) return previous;
+      const next = { ...previous }; delete next[todayStr]; return next;
+    });
+  }, [todayStr, todayEntry?.note, draft]);
+
+  const setNote = (value: string) => {
+    const nextRevision = ++revision.current;
+    setDrafts(previous => ({ ...previous, [todayStr]: { value, revision: nextRevision, acknowledged: false } }));
+  };
+
+  const writeEntry = (moodId: string | null): Promise<void> => {
+    const date = todayStr, value = note, draftRevision = draft?.revision;
+    const key = JSON.stringify([date, moodId, value]);
+    const existing = inFlight.current.get(key);
+    if (existing) return existing;
+    setSaveError(null);
+    setPending(count => count + 1);
+    const write = writes.current.then(() => saveEntry(date, moodId, value));
+    const observed = write.then(() => {
+      setDrafts(previous => previous[date]?.revision === draftRevision && draftRevision !== undefined
+        ? { ...previous, [date]: { ...previous[date], acknowledged: true } } : previous);
+    }, () => {
+      setSaveError('Could not save entry. Try again.');
+    }).finally(() => {
+      inFlight.current.delete(key);
+      setPending(count => count - 1);
+    });
+    writes.current = observed;
+    inFlight.current.set(key, observed);
+    return observed;
+  };
 
   // Handle tap on mood color button
   const handleMoodSelect = async (moodId: string) => {
-    setSaveError(null);
-    try {
-      await saveEntry(todayStr, moodId, note);
-    } catch (err) {
-      console.error('Error saving mood:', err);
-      setSaveError('Could not save mood. Try again.');
-    }
+    desiredMood.current = { date: todayStr, id: moodId };
+    await writeEntry(moodId);
   };
 
   // Clear mood for today
   const handleClearMood = async () => {
-    setSaveError(null);
-    try {
-      await saveEntry(todayStr, null, note);
-    } catch (err) {
-      console.error('Error clearing mood:', err);
-      setSaveError('Could not clear mood. Try again.');
-    }
+    desiredMood.current = { date: todayStr, id: null };
+    await writeEntry(null);
   };
 
   // Save note separately if needed (auto-saves on blur or save button)
   const handleSaveNote = async () => {
-    setSaveError(null);
-    setIsSavingNote(true);
-    try {
-      await saveEntry(todayStr, selectedMoodId, note);
-    } catch (err) {
-      console.error('Error saving note:', err);
-      setSaveError('Could not save note. Try again.');
-    } finally {
-      setIsSavingNote(false);
-    }
+    if (note.trim() === (todayEntry?.note ?? '') && !saveError) return;
+    await writeEntry(desiredMood.current.id);
   };
 
   const getTodayFormatted = () => {
@@ -156,7 +176,7 @@ export const Home: React.FC<{ onNavigateToSettings: () => void }> = ({ onNavigat
                     borderColor: isSelected ? mood.color : 'transparent',
                     backgroundColor: isSelected ? `${mood.color}15` : undefined
                   }}
-                  scope="moody-today" className="mood-button relative border-2 transition-colors bg-ui-surface hover:shadow-md cursor-pointer group shadow-sm"
+                  scope="moody-today" className="mood-button relative border-2 ui-interactive-surface bg-ui-surface cursor-pointer group shadow-sm"
                   id={`mood-btn-${mood.id}`}
                 >
                   <span 

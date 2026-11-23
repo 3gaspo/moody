@@ -151,7 +151,7 @@ export const CalendarView: React.FC = () => {
                   backgroundColor: mood ? `${mood.color}25` : undefined,
                   borderColor: mood ? mood.color : 'transparent'
                 }}
-                className="ui-calendar-day border-2 bg-ui-surface hover:shadow-md transition-colors group"
+                className="ui-calendar-day border-2 bg-ui-surface ui-interactive-surface group"
                 id={`calendar-cell-${dateStr}`}
               >
                 <span 

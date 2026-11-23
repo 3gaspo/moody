@@ -1,4 +1,7 @@
 import { ActionButton } from '@3gaspo/app-ui/ActionButton';
+import { HelpSection } from '@3gaspo/app-ui/Tutorial';
+import { featureGuide } from '../featureGuide';
+import { SettingsSaveFeedback, useSettingsSave } from '@3gaspo/app-ui/SettingsSaveFeedback';
 import { ValidatedForm } from '../components/ValidatedForm';
 import { SettingsSwitch } from '../components/SettingsSwitch';
 import { PageHeader } from '../components/PageHeader';
@@ -54,6 +57,7 @@ export const SettingsPage: React.FC = () => {
   } = useData();
 
   const isDevMode = !firebaseReady;
+  const saves = useSettingsSave();
 
   // App settings state
   const [showAddMoodModal, setShowAddMoodModal] = useState(false);
@@ -80,7 +84,7 @@ export const SettingsPage: React.FC = () => {
   // Toggle Dark Mode
   const handleToggleDarkMode = () => {
     const nextTheme = settings.theme === 'dark' ? 'light' : 'dark';
-    updateThemeSetting(nextTheme);
+    return saves.save(() => updateThemeSetting(nextTheme), 'theme');
   };
 
   // Edit Mood Submit
@@ -199,6 +203,7 @@ export const SettingsPage: React.FC = () => {
     <div className="space-y-6 pb-16 animate-fade-in" id="settings-view">
       {/* Page Title & Header */}
       <PageHeader title="Settings" devMode={isDevMode} titleId="settings-title" devModeId="dev-mode-label" />
+      <SettingsSaveFeedback {...saves} />
 
       {/* SECTION 1: Moods Settings (App-Specific) */}
       <div className="ui-section-card bg-ui-section p-8 rounded-[32px] space-y-6" id="moods-settings-section">
@@ -313,7 +318,7 @@ export const SettingsPage: React.FC = () => {
           </div>
 
           {/* Pill Switch */}
-          <SettingsSwitch checked={settings.theme === 'dark'} onClick={handleToggleDarkMode} label="Dark Mode" id="theme-pill-switch" />
+          <SettingsSwitch checked={settings.theme === 'dark'} disabled={saves.saving} onClick={handleToggleDarkMode} label="Dark Mode" id="theme-pill-switch" />
         </div>
       </div>
 
@@ -428,6 +433,8 @@ export const SettingsPage: React.FC = () => {
         )}
       </div>
 
+      <HelpSection appName="Moody" sections={featureGuide} />
+
       {/* SECTION 4: Actions (Disconnect, Download, Reset) */}
       <div className="ui-section-card bg-ui-section p-8 rounded-[32px] space-y-4" id="actions-settings-section">
         <h2 className="ui-section-title">Actions</h2>
@@ -471,7 +478,7 @@ export const SettingsPage: React.FC = () => {
           ) : (
             <ActionButton scope="moody-settings"
               onClick={() => setShowSignOutConfirm(true)}
-              className="ui-setting-action w-full flex items-center p-5 bg-ui-surface rounded-2xl border border-ui-border shadow-sm text-left hover:shadow-md transition-shadow cursor-pointer"
+              className="ui-setting-action w-full flex items-center p-5 bg-ui-surface rounded-2xl border border-ui-border shadow-sm text-left ui-interactive-surface cursor-pointer"
               id="action-disconnect-btn"
             >
               <div className="flex items-center space-x-3.5">
@@ -489,7 +496,7 @@ export const SettingsPage: React.FC = () => {
         {/* 2. Download data as CSV */}
         <ActionButton scope="moody-settings"
           onClick={handleCSVExport}
-          className="ui-setting-action w-full flex items-center p-5 bg-ui-surface rounded-2xl border border-ui-border shadow-sm text-left hover:shadow-md transition-shadow cursor-pointer"
+          className="ui-setting-action w-full flex items-center p-5 bg-ui-surface rounded-2xl border border-ui-border shadow-sm text-left ui-interactive-surface cursor-pointer"
           id="action-download-csv-btn"
         >
           <div className="flex items-center space-x-3.5">

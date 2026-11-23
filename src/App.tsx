@@ -1,4 +1,5 @@
 import { ScreenBoundary } from './components/ScreenBoundary';
+import { TutorialProvider } from '@3gaspo/app-ui/Tutorial';
 import { StateFeedback, DataLoadError } from './components/StateFeedback';
 /**
  * @license
@@ -9,6 +10,7 @@ import React, { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { Providers, useAuth, useData } from './providers/Providers';
 import { Home } from './pages/Home';
+import { tutorialPages } from './tutorial';
 const CalendarView = lazy(() => import('./pages/Calendar').then(module => ({ default: module.CalendarView })));
 const Statistics = lazy(() => import('./pages/Statistics').then(module => ({ default: module.Statistics })));
 const SettingsPage = lazy(() => import('./pages/Settings').then(module => ({ default: module.SettingsPage })));
@@ -31,43 +33,44 @@ const AppContent: React.FC = () => {
   }
 
   return (
-    <div className="app-shell w-full bg-ui-page text-ui-text transition-colors duration-300">
-      {/* Desktop Centering Frame (Mobile Shell) */}
-      <div className="app-page flex flex-col relative">
-        
-        {/* Main Routed Area */}
-        <div className="flex-1">
-          <ScreenBoundary>{dataError ? <DataLoadError /> : dataLoading ? <StateFeedback kind="loading" /> : <Suspense fallback={<StateFeedback kind="loading" />}>
-          <Routes>
-            <Route path="/" element={<Navigate to="/home" replace />} />
-            
-            {/* Home route */}
-            <Route path="/home" element={<Home onNavigateToSettings={() => navigate('/settings')} />} />
+    <TutorialProvider appName="Moody" accountId={user.uid} ready={!dataLoading && !dataError} pages={tutorialPages}>
+      <div className="app-shell w-full bg-ui-page text-ui-text transition-colors duration-300">
+        {/* Desktop Centering Frame (Mobile Shell) */}
+        <div className="app-page flex flex-col relative">
+          {/* Main Routed Area */}
+          <div className="flex-1">
+            <ScreenBoundary>{dataError ? <DataLoadError /> : dataLoading ? <StateFeedback kind="loading" /> : <Suspense fallback={<StateFeedback kind="loading" />}>
+              <Routes>
+                <Route path="/" element={<Navigate to="/home" replace />} />
 
-            {/* Calendar route */}
-            <Route path="/calendar" element={<CalendarView />} />
+                {/* Home route */}
+                <Route path="/home" element={<Home onNavigateToSettings={() => navigate('/settings')} />} />
 
-            {/* Statistics route */}
-            <Route path="/statistics" element={<Statistics />} />
+                {/* Calendar route */}
+                <Route path="/calendar" element={<CalendarView />} />
 
-            {/* Settings route */}
-            <Route path="/settings" element={<SettingsPage />} />
+                {/* Statistics route */}
+                <Route path="/statistics" element={<Statistics />} />
 
-            {/* Catch-all redirection */}
-            <Route path="*" element={<Navigate to="/home" replace />} />
-          </Routes>
-          </Suspense>}</ScreenBoundary>
+                {/* Settings route */}
+                <Route path="/settings" element={<SettingsPage />} />
+
+                {/* Catch-all redirection */}
+                <Route path="*" element={<Navigate to="/home" replace />} />
+              </Routes>
+            </Suspense>}</ScreenBoundary>
+          </div>
+
+          {/* Fixed Bottom Navigation (Exactly Four Bottom Tabs) */}
+          <BottomNavigation id="bottom-tab-bar" items={[
+            { to: '/home', label: 'Home', icon: Smile, id: 'tab-home' },
+            { to: '/calendar', label: 'Calendar', icon: Calendar, id: 'tab-calendar' },
+            { to: '/statistics', label: 'Statistics', icon: BarChart3, id: 'tab-statistics' },
+            { to: '/settings', label: 'Settings', icon: SettingsIcon, id: 'tab-settings' },
+          ]} />
         </div>
-
-        {/* Fixed Bottom Navigation (Exactly Four Bottom Tabs) */}
-        <BottomNavigation id="bottom-tab-bar" items={[
-          { to: '/home', label: 'Home', icon: Smile, id: 'tab-home' },
-          { to: '/calendar', label: 'Calendar', icon: Calendar, id: 'tab-calendar' },
-          { to: '/statistics', label: 'Statistics', icon: BarChart3, id: 'tab-statistics' },
-          { to: '/settings', label: 'Settings', icon: SettingsIcon, id: 'tab-settings' },
-        ]} />
       </div>
-    </div>
+    </TutorialProvider>
   );
 };
 
