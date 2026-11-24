@@ -11,7 +11,7 @@ export const tutorialPages = [
     icon: Smile,
     title: 'Home',
     actions: [
-      { icon: Smile, text: 'Save today’s mood with one tap' },
+      { icon: Smile, text: 'Tap to save today’s mood' },
       { icon: X, text: 'Clear the selected mood' },
       { icon: MessageSquare, text: 'Add a daily note' },
     ],
@@ -20,7 +20,7 @@ export const tutorialPages = [
     icon: Calendar,
     title: 'Calendar',
     actions: [
-      { icon: Calendar, text: 'Pick a date to review or edit its mood' },
+      { icon: Calendar, text: 'Pick a date to edit its mood' },
       { icon: MessageSquare, text: 'Read or edit that day’s note' },
     ],
   },
@@ -28,8 +28,8 @@ export const tutorialPages = [
     icon: BarChart3,
     title: 'Statistics',
     actions: [
-      { icon: Smile, text: 'See your most frequent moods' },
-      { icon: BarChart3, text: 'Compare mood frequency over time' },
+      { icon: Smile, text: 'See most frequent moods' },
+      { icon: BarChart3, text: 'Compare moods over time' },
     ],
   },
   {
@@ -37,7 +37,7 @@ export const tutorialPages = [
     title: 'Settings',
     actions: [
       { icon: Plus, text: 'Add moods to your palette' },
-      { icon: Edit2, text: 'Change a mood’s name or colour' },
+      { icon: Edit2, text: 'Rename or recolour a mood' },
       { icon: Download, text: 'Export your journal as CSV' },
     ],
   },
