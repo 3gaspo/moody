@@ -1,4 +1,5 @@
 import { ActionButton } from '@3gaspo/app-ui/ActionButton';
+import { SettingsDisclosure } from '@3gaspo/app-ui/SettingsDisclosure';
 import { HelpSection } from '@3gaspo/app-ui/Tutorial';
 import { featureGuide } from '../featureGuide';
 import { SettingsSaveFeedback, useSettingsSave } from '@3gaspo/app-ui/SettingsSaveFeedback';
@@ -206,13 +207,8 @@ export const SettingsPage: React.FC = () => {
       <SettingsSaveFeedback {...saves} />
 
       {/* SECTION 1: Moods Settings (App-Specific) */}
-      <div className="ui-section-card bg-ui-section p-8 rounded-[32px] space-y-6" id="moods-settings-section">
-        <div className="flex items-center justify-between">
-          <div className="space-y-1">
-            <h2 className="ui-section-title">
-              Moods
-            </h2>
-          </div>
+      <SettingsDisclosure id="moods-settings-section" label="Moods">
+        <div className="flex justify-end">
           <ActionButton scope="moody-settings"
             onClick={() => {
               setMoodError(null);
@@ -296,7 +292,7 @@ export const SettingsPage: React.FC = () => {
             </div>
           ))}
         </div>
-      </div>
+      </SettingsDisclosure>
 
       {/* SECTION 2: Appearance */}
       <div className="ui-section-card bg-ui-section p-8 rounded-[32px] space-y-5" id="appearance-settings-section">
