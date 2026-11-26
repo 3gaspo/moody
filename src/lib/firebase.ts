@@ -8,8 +8,10 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
+import { isGuestSession } from '@3gaspo/app-ui/guestSession';
 
 export const firebaseReady =
+  !isGuestSession &&
   !!import.meta.env.VITE_FIREBASE_API_KEY &&
   !!import.meta.env.VITE_FIREBASE_AUTH_DOMAIN &&
   !!import.meta.env.VITE_FIREBASE_PROJECT_ID &&

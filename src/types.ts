@@ -42,6 +42,7 @@ export interface AuthProviderInterface {
   error: string | null;
   signUp: (email: string, password: string) => Promise<UserSession>;
   signIn: (email: string, password: string) => Promise<UserSession>;
+  resetPassword?: (email: string) => Promise<void>;
   signOut: () => Promise<void>;
   clearError: () => void;
   loadError: boolean;

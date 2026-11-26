@@ -1,3 +1,5 @@
+import { GuestAccount } from '@3gaspo/app-ui/GuestAccount';
+import { isGuestSession } from '@3gaspo/app-ui/guestSession';
 import { ActionButton } from '@3gaspo/app-ui/ActionButton';
 import { SettingsDisclosure } from '@3gaspo/app-ui/SettingsDisclosure';
 import { HelpSection } from '@3gaspo/app-ui/Tutorial';
@@ -57,7 +59,7 @@ export const SettingsPage: React.FC = () => {
     loading: dataLoading
   } = useData();
 
-  const isDevMode = !firebaseReady;
+  const isDevMode = !firebaseReady && !isGuestSession;
   const saves = useSettingsSave();
 
   // App settings state
@@ -319,7 +321,7 @@ export const SettingsPage: React.FC = () => {
       </div>
 
       {/* SECTION 3: Account (Sign in / Create Account, or Display Signed In profile) */}
-      <div className="ui-section-card bg-ui-section p-8 rounded-[32px] space-y-5" id="account-settings-section">
+      {isGuestSession ? <GuestAccount /> : <div className="ui-section-card bg-ui-section p-8 rounded-[32px] space-y-5" id="account-settings-section">
         <div className="space-y-1">
           <h2 className="ui-section-title">
             Account
@@ -427,7 +429,7 @@ export const SettingsPage: React.FC = () => {
             )}
           </ValidatedForm>
         )}
-      </div>
+      </div>}
 
       <HelpSection appName="Moody" sections={featureGuide} />
 
@@ -435,7 +437,7 @@ export const SettingsPage: React.FC = () => {
       <div className="ui-section-card bg-ui-section p-8 rounded-[32px] space-y-4" id="actions-settings-section">
         <h2 className="ui-section-title">Actions</h2>
         {/* 1. Disconnect / Sign out */}
-        {user && (
+        {user && !isGuestSession && (
           showSignOutConfirm ? (
             <div 
               className="w-full p-5 bg-orange-500/5 dark:bg-orange-500/10 rounded-2xl border border-orange-500/20 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3 animate-fade-in"

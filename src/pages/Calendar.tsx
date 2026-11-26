@@ -22,6 +22,7 @@ export const CalendarView: React.FC = () => {
   const [currentDate, setCurrentDate] = useState(() => new Date());
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
+  const todayKey = new Intl.DateTimeFormat('en-CA').format(new Date());
 
   // Modal active state
   const [activeDateStr, setActiveDateStr] = useState<string | null>(null);
@@ -141,12 +142,17 @@ export const CalendarView: React.FC = () => {
             const { day, dateStr, entry } = cell;
             const mood = entry?.moodId ? moods.find(m => m.id === entry.moodId) : null;
             const hasNote = !!entry?.note;
+            const dayLabel = [formatDate(dateStr, 'full'), mood && `Mood: ${mood.name}`, hasNote && 'Note available'].filter(Boolean).join(', ');
 
             return (
               <ActionButton
                 key={dateStr}
                 onClick={() => handleDayClick(dateStr, entry)}
-                data-date={dateStr} title={dateStr} aria-current={dateStr === new Intl.DateTimeFormat('en-CA').format(new Date()) ? 'date' : undefined} aria-pressed={activeDateStr === dateStr}
+                data-date={dateStr}
+                title={dayLabel}
+                aria-label={dayLabel}
+                aria-current={dateStr === todayKey ? 'date' : undefined}
+                aria-pressed={activeDateStr === dateStr}
                 style={{
                   backgroundColor: mood ? `${mood.color}25` : undefined,
                   borderColor: mood ? mood.color : 'transparent'
@@ -173,7 +179,7 @@ export const CalendarView: React.FC = () => {
                 {/* Note Indicator */}
                 {hasNote && (
                   <span className="ui-calendar-note text-ui-ink">
-                    <MessageSquare className="w-3 h-3 fill-current opacity-80" />
+                    <MessageSquare aria-hidden="true" className="w-3 h-3 fill-current opacity-80" />
                   </span>
                 )}
               </ActionButton>
@@ -185,7 +191,7 @@ export const CalendarView: React.FC = () => {
       {/* Edit modal */}
       {activeDateStr && (
         <Dialog open={!!activeDateStr} busy={saving} onClose={() => setActiveDateStr(null)} title="Edit Entry" id="day-edit-modal">
-            <p className="ui-meta text-xs text-ui-muted mb-5">{formatDate(activeDateStr, 'full')}</p>
+            <p className="ui-meta text-xs text-ui-muted mb-5">{formatDate(activeDateStr, 'short')}</p>
             <ValidatedForm id={entryFormId} onSubmit={handleSaveChanges} className="space-y-6">
             {/* Selecting mood color inside modal */}
             <div className="space-y-3">

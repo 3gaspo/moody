@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { appStorage, guestUser, isGuestSession } from '@3gaspo/app-ui/guestSession';
 import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import { DEFAULT_THEME } from '@3gaspo/app-ui/themePreference';
 import {
@@ -18,6 +19,7 @@ import {
   onAuthStateChanged,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
+  sendPasswordResetEmail,
   signOut as fbSignOut
 } from 'firebase/auth';
 import {
@@ -71,10 +73,15 @@ export const Providers: React.FC<{ children: React.ReactNode }> = ({ children })
   // --- LOCAL AUTH IMPLEMENTATION ---
   useEffect(() => {
     try {
+      if (isGuestSession) {
+        setUser(guestUser);
+        setAuthLoading(false);
+        return;
+      }
       if (!isFirebaseMode) {
         // Local Auth initialization
-        const signedOutFlag = localStorage.getItem('moody_local_signed_out');
-        const savedUser = localStorage.getItem('moody_local_user');
+        const signedOutFlag = appStorage.getItem('moody_local_signed_out');
+        const savedUser = appStorage.getItem('moody_local_user');
 
         if (signedOutFlag === 'true') {
           setUser(null);
@@ -83,8 +90,8 @@ export const Providers: React.FC<{ children: React.ReactNode }> = ({ children })
         } else {
           // First launch: Create default local user and sign them in
           const defaultUser = { uid: 'local-user-id', email: 'local-user@example.com' };
-          localStorage.setItem('moody_local_user', JSON.stringify(defaultUser));
-          localStorage.removeItem('moody_local_signed_out');
+          appStorage.setItem('moody_local_user', JSON.stringify(defaultUser));
+          appStorage.removeItem('moody_local_signed_out');
           setUser(defaultUser);
         }
         setAuthLoading(false);
@@ -117,8 +124,8 @@ export const Providers: React.FC<{ children: React.ReactNode }> = ({ children })
     setAuthError(null);
     if (!isFirebaseMode) {
       const newUser = { uid: `local-${Date.now()}`, email };
-      localStorage.setItem('moody_local_user', JSON.stringify(newUser));
-      localStorage.removeItem('moody_local_signed_out');
+      appStorage.setItem('moody_local_user', JSON.stringify(newUser));
+      appStorage.removeItem('moody_local_signed_out');
       setUser(newUser);
       return newUser;
     } else {
@@ -141,8 +148,8 @@ export const Providers: React.FC<{ children: React.ReactNode }> = ({ children })
     setAuthError(null);
     if (!isFirebaseMode) {
       const existingUser = { uid: `local-${email.replace(/[^a-zA-Z0-9]/g, '')}`, email };
-      localStorage.setItem('moody_local_user', JSON.stringify(existingUser));
-      localStorage.removeItem('moody_local_signed_out');
+      appStorage.setItem('moody_local_user', JSON.stringify(existingUser));
+      appStorage.removeItem('moody_local_signed_out');
       setUser(existingUser);
       return existingUser;
     } else {
@@ -164,8 +171,8 @@ export const Providers: React.FC<{ children: React.ReactNode }> = ({ children })
   const signOut = async (): Promise<void> => {
     setAuthError(null);
     if (!isFirebaseMode) {
-      localStorage.setItem('moody_local_signed_out', 'true');
-      localStorage.removeItem('moody_local_user');
+      appStorage.setItem('moody_local_signed_out', 'true');
+      appStorage.removeItem('moody_local_user');
       setUser(null);
     } else {
       try {
@@ -218,28 +225,28 @@ export const Providers: React.FC<{ children: React.ReactNode }> = ({ children })
 
         // Initialize Settings
         let localSettings: AppSettings = { theme: DEFAULT_THEME };
-        const savedSettings = localStorage.getItem(settingsKey);
+        const savedSettings = appStorage.getItem(settingsKey);
         if (savedSettings) {
           const saved: Partial<AppSettings> = JSON.parse(savedSettings);
           localSettings = { ...saved, theme: saved.theme ?? DEFAULT_THEME };
         } else {
-          localStorage.setItem(settingsKey, JSON.stringify(localSettings));
+          appStorage.setItem(settingsKey, JSON.stringify(localSettings));
         }
         setSettings(localSettings);
 
         // Only a new account gets defaults. An empty saved palette is intentional.
-        const savedMoods = localStorage.getItem(moodsKey);
-        const firstConnection = savedSettings === null && savedMoods === null && localStorage.getItem(entriesKey) === null;
+        const savedMoods = appStorage.getItem(moodsKey);
+        const firstConnection = savedSettings === null && savedMoods === null && appStorage.getItem(entriesKey) === null;
         const now = new Date().toISOString();
         const localMoods: Mood[] = savedMoods !== null
           ? JSON.parse(savedMoods)
           : firstConnection ? defaultMoodsSeed.map(m => ({ ...m, createdAt: now, updatedAt: now })) : [];
-        if (savedMoods === null) localStorage.setItem(moodsKey, JSON.stringify(localMoods));
+        if (savedMoods === null) appStorage.setItem(moodsKey, JSON.stringify(localMoods));
         setMoods(localMoods);
 
         // Initialize Entries
         let localEntries: Record<string, MoodEntry> = {};
-        const savedEntries = localStorage.getItem(entriesKey);
+        const savedEntries = appStorage.getItem(entriesKey);
         if (savedEntries) {
           localEntries = JSON.parse(savedEntries);
         }
@@ -334,7 +341,7 @@ export const Providers: React.FC<{ children: React.ReactNode }> = ({ children })
     if (!isFirebaseMode) {
       const moodsKey = `moody_moods_${uid}`;
       const updatedMoods = [...moods, newMood];
-      localStorage.setItem(moodsKey, JSON.stringify(updatedMoods));
+      appStorage.setItem(moodsKey, JSON.stringify(updatedMoods));
       setMoods(updatedMoods);
     } else {
       const { doc, setDoc } = await import('firebase/firestore');
@@ -367,7 +374,7 @@ export const Providers: React.FC<{ children: React.ReactNode }> = ({ children })
         }
         return m;
       });
-      localStorage.setItem(moodsKey, JSON.stringify(updatedMoods));
+      appStorage.setItem(moodsKey, JSON.stringify(updatedMoods));
       setMoods(updatedMoods);
     } else {
       const { doc, updateDoc } = await import('firebase/firestore');
@@ -396,7 +403,7 @@ export const Providers: React.FC<{ children: React.ReactNode }> = ({ children })
         .filter(m => m.id !== id)
         .map((m, index) => ({ ...m, order: index })); // Reorder deterministically
 
-      localStorage.setItem(moodsKey, JSON.stringify(remainingMoods));
+      appStorage.setItem(moodsKey, JSON.stringify(remainingMoods));
 
       // 2. Set affected entries' moodId to null gracefully
       const updatedEntries = { ...entries };
@@ -409,7 +416,7 @@ export const Providers: React.FC<{ children: React.ReactNode }> = ({ children })
           };
         }
       });
-      localStorage.setItem(entriesKey, JSON.stringify(updatedEntries));
+      appStorage.setItem(entriesKey, JSON.stringify(updatedEntries));
 
       setMoods(remainingMoods);
       setEntries(updatedEntries);
@@ -481,7 +488,7 @@ export const Providers: React.FC<{ children: React.ReactNode }> = ({ children })
         ...entries,
         [date]: newEntry
       };
-      localStorage.setItem(entriesKey, JSON.stringify(updatedEntries));
+      appStorage.setItem(entriesKey, JSON.stringify(updatedEntries));
       setEntries(updatedEntries);
     } else {
       const { doc, setDoc } = await import('firebase/firestore');
@@ -501,7 +508,7 @@ export const Providers: React.FC<{ children: React.ReactNode }> = ({ children })
       const entriesKey = `moody_entries_${uid}`;
       const updatedEntries = { ...entries };
       delete updatedEntries[date];
-      localStorage.setItem(entriesKey, JSON.stringify(updatedEntries));
+      appStorage.setItem(entriesKey, JSON.stringify(updatedEntries));
       setEntries(updatedEntries);
     } else {
       const { doc, deleteDoc } = await import('firebase/firestore');
@@ -526,7 +533,7 @@ export const Providers: React.FC<{ children: React.ReactNode }> = ({ children })
 
     if (!isFirebaseMode) {
       const moodsKey = `moody_moods_${uid}`;
-      localStorage.setItem(moodsKey, JSON.stringify(reseededMoods));
+      appStorage.setItem(moodsKey, JSON.stringify(reseededMoods));
       setMoods(reseededMoods);
     } else {
       try {
@@ -564,7 +571,7 @@ export const Providers: React.FC<{ children: React.ReactNode }> = ({ children })
     if (!isFirebaseMode) {
       const settingsKey = `moody_settings_${uid}`;
       const newSettings = { ...settings, theme };
-      localStorage.setItem(settingsKey, JSON.stringify(newSettings));
+      appStorage.setItem(settingsKey, JSON.stringify(newSettings));
       setSettings(newSettings);
     } else {
       try {
@@ -581,7 +588,7 @@ export const Providers: React.FC<{ children: React.ReactNode }> = ({ children })
 
     if (!isFirebaseMode) {
       const entriesKey = `moody_entries_${uid}`;
-      localStorage.setItem(entriesKey, JSON.stringify({}));
+      appStorage.setItem(entriesKey, JSON.stringify({}));
       setEntries({});
     } else {
       try {
@@ -628,9 +635,9 @@ export const Providers: React.FC<{ children: React.ReactNode }> = ({ children })
       const entriesKey = `moody_entries_${uid}`;
       const settingsKey = `moody_settings_${uid}`;
 
-      localStorage.setItem(moodsKey, JSON.stringify(reseededMoods));
-      localStorage.setItem(entriesKey, JSON.stringify({}));
-      localStorage.setItem(settingsKey, JSON.stringify({ theme: DEFAULT_THEME }));
+      appStorage.setItem(moodsKey, JSON.stringify(reseededMoods));
+      appStorage.setItem(entriesKey, JSON.stringify({}));
+      appStorage.setItem(settingsKey, JSON.stringify({ theme: DEFAULT_THEME }));
 
       setMoods(reseededMoods);
       setEntries({});
@@ -693,6 +700,7 @@ export const Providers: React.FC<{ children: React.ReactNode }> = ({ children })
     loadError: sessionLoadError,
     signUp,
     signIn,
+    resetPassword: isFirebaseMode ? email => sendPasswordResetEmail(auth!, email) : undefined,
     signOut,
     clearError
   }), [user, authLoading, authError, sessionLoadError]);
