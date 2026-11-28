@@ -41,8 +41,8 @@ export function AddMoodDialog({ open, onClose }: { open: boolean; onClose: () =>
       <div className="space-y-4">
         {/* Name */}
         <div className="space-y-1.5">
-          <label className="ui-field-label text-xs font-bold text-ui-muted">Mood Label Name</label>
-          <input
+          <label htmlFor={addFormId + "-field-1"} className="ui-field-label text-xs font-bold text-ui-muted">Mood Label Name</label>
+          <input id={addFormId + "-field-1"}
             type="text"
             required
             value={newMoodName}
@@ -54,9 +54,9 @@ export function AddMoodDialog({ open, onClose }: { open: boolean; onClose: () =>
 
         {/* Color */}
         <div className="space-y-2">
-          <label className="ui-field-label text-xs font-bold text-ui-muted block">Mood Color swatch</label>
+          <label htmlFor={addFormId + "-field-2"} className="ui-field-label text-xs font-bold text-ui-muted block">Mood Color swatch</label>
           <div className="flex items-center space-x-3 bg-ui-section p-3.5 rounded-xl border border-ui-ink/10">
-            <input
+            <input id={addFormId + "-field-2"}
               type="color"
               value={newMoodColor}
               onChange={(e) => setNewMoodColor(e.target.value)}
